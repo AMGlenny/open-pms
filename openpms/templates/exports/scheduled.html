@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Scheduled exports{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('exports.index') }}">Exports</a></p>
+<h1>Scheduled exports</h1>
+<p class="lead">Each job writes a fresh copy of its files to a folder on the server. <code>latest</code> is replaced on every run, and a dated copy is kept if the job keeps history.</p>
+<p>Files are written to <code>{{ folder }}</code>. To open them in other tools, sync that folder with OneDrive, Google Drive, Dropbox or a shared drive (for example with rclone), or use a <a href="{{ url_for('exports.links') }}">data link</a> instead.</p>
+<p>Jobs run by themselves once a day. Add or change them in <a href="{{ url_for('admin.list_rows', table='export_jobs') }}">Admin &gt; Scheduled exports</a>.</p>
+
+{% if jobs %}
+<div class="table-wrap">
+<table class="table">
+  <caption class="visually-hidden">Scheduled export jobs</caption>
+  <thead><tr><th scope="col">Job</th><th scope="col">When</th><th scope="col">Folder</th><th scope="col">Last run</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+  <tbody>{% for j in jobs %}
+    <tr>
+      <th scope="row"><a href="{{ url_for('admin.view_row', table='export_jobs', key=j.job_code) }}">{{ j.job_name }}</a>{% if not j.active %} <span class="tag">Inactive</span>{% endif %}</th>
+      <td>{{ j.frequency|capitalize }}{% if j.frequency == 'weekly' %}, day {{ j.run_day }} (1 is Monday){% elif j.frequency in ('monthly', 'quarterly') %}, on day {{ j.run_day }}{% endif %}. {{ {'csv': 'CSV', 'xlsx': 'Excel', 'both': 'CSV and Excel'}[j.format] }}.</td>
+      <td><code>{{ j.folder_path }}</code></td>
+      <td>{% if j.last_run_at %}{{ j.last_run_at|fmt }}<br>{{ j.last_run_status }}{% else %}Not run yet{% endif %}</td>
+      <td><form method="post" action="{{ url_for('exports.run_now') }}">{{ csrf_field() }}<input type="hidden" name="job_code" value="{{ j.job_code }}">
+        <button type="submit" class="button button-secondary">Run now<span class="visually-hidden">: {{ j.job_name }}</span></button></form></td>
+    </tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>No scheduled exports yet.</p>
+{% endif %}
+
+{% if runs %}
+<h2>Recent runs</h2>
+<ul>{% for r in runs %}<li>{{ r.requested_at|fmt }}, {{ r.job_code }}: {{ 'done' if r.status == 'done' else 'failed' }}. {{ r.message }}</li>{% endfor %}</ul>
+{% endif %}
+{% endblock %}

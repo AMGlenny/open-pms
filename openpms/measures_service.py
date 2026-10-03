@@ -147,16 +147,8 @@ def send_reminders(repo, today=None, days_before=None):
 def run_daily(repo, today=None):
     """Runs once a day: from the first request of the day, or `openpms run-jobs`."""
     today = today or date.today()
-    marker = f"daily_jobs_{repo.org_id}"
-    conn = repo.conn
-    conn.execute("BEGIN IMMEDIATE")  # only one process claims today's run
-    row = conn.execute("SELECT value FROM meta WHERE key = ?", (marker,)).fetchone()
-    if row and row["value"] >= today.isoformat():
-        conn.execute("COMMIT")
+    if not db.claim_today(repo.conn, f"daily_jobs_{repo.org_id}", today):
         return None
-    conn.execute("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-                 (marker, today.isoformat()))
-    conn.execute("COMMIT")
     result = {"expected": create_expected(repo, today)}
     if today.isoweekday() == 1:
         result["reminders"] = len(send_reminders(repo, today))

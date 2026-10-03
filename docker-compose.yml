@@ -11,6 +11,8 @@ services:
     environment:
       # Set to "1" once you serve Open PMS over HTTPS (see docs/install.md).
       OPENPMS_SECURE_COOKIES: "0"
+      # Set to "1" if a reverse proxy such as Caddy or nginx sits in front.
+      OPENPMS_BEHIND_PROXY: "0"
     restart: unless-stopped
 
 volumes:

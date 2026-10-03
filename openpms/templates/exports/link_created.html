@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Data link made{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('exports.links') }}">Data links</a></p>
+<h1>Data link made</h1>
+<div class="notice" role="status">Copy the link now. For security it's only shown once. If you lose it, turn it off and make a new one.</div>
+<div class="field input-wide">
+  <label for="link-url">Link for "{{ name }}"</label>
+  <input type="text" id="link-url" class="input-wide" value="{{ url }}" readonly spellcheck="false">
+</div>
+<h2>Files at this link</h2>
+<ul>
+  {% for t in tables %}<li><code>{{ url }}{{ t }}.csv</code></li>{% endfor %}
+  <li><code>{{ url }}data_dictionary.csv</code></li>
+  <li><code>{{ url }}README_for_AI.md</code></li>
+</ul>
+<h2>How to connect</h2>
+<ul>
+  <li><strong>Power BI:</strong> Get data, Web, paste the address of a CSV file. Set a scheduled refresh in the Power BI service.</li>
+  <li><strong>Excel:</strong> Data, From Web, paste the address of a CSV file. Use Refresh All to update.</li>
+  <li><strong>Google Sheets:</strong> in a cell, type <code>=IMPORTDATA("address of a CSV file")</code>.</li>
+  <li><strong>Looker Studio and other tools:</strong> use their CSV or web connector with the address of a CSV file.</li>
+</ul>
+<p>Each request reads the live data, so values update as soon as they're approved.</p>
+<p><a href="{{ url_for('exports.links') }}" class="button button-secondary">Back to data links</a></p>
+{% endblock %}

@@ -7,6 +7,7 @@ key: how a new row's key is made
   ("manual", hint)            admin types it
   ("sequence", prefix, digits) next number, e.g. PM-0023
   ("template", "{a}|{b}")     built from other fields
+app_fields: columns only the app writes, shown but never edited
 """
 ADMIN_TABLES = {
     "measures": dict(
@@ -50,6 +51,11 @@ ADMIN_TABLES = {
         title="Pick lists", key=("template", "{lookup_type}|{code}"), label="label",
         list_cols=["lookup_type", "code", "label", "sort_order", "active"], search=["code", "label"],
         inactive=("active", False)),
+    "export_jobs": dict(
+        title="Scheduled exports", key=("manual", "A short code, for example EXP-FULL-NIGHTLY."), label="job_name",
+        list_cols=["job_code", "job_name", "dataset", "frequency", "active", "last_run_status"],
+        search=["job_code", "job_name"], inactive=("active", False), app_fields=("last_run_at", "last_run_status"),
+        help="Each job writes files to the snapshot folder on the server. See Exports > Scheduled exports."),
     "settings": dict(
         title="Settings", key=("manual", "Setting name."), label="setting_key",
         list_cols=["setting_key", "setting_value", "description"], search=["setting_key"]),

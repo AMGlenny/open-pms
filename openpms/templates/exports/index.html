@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "macros.html" import error_summary %}
+{% block title %}Exports{% endblock %}
+{% block content %}
+<h1>Exports</h1>
+<p class="lead">Download tidy files for Excel, BI tools or AI. Every export includes a data dictionary and a README written for AI tools. Only approved values are included. Individual wellbeing, review comments and the audit log are never exported.</p>
+{% if role == 'admin' %}
+<p><a href="{{ url_for('exports.scheduled') }}">Scheduled exports</a> and <a href="{{ url_for('exports.links') }}">data links for BI tools</a> are set up by admins.</p>
+{% endif %}
+{{ error_summary(errors) }}
+<form method="post" action="{{ url_for('exports.download') }}" class="form" novalidate>
+  {{ csrf_field() }}
+  <fieldset class="field {{ 'field-error' if errors.dataset else '' }}">
+    <legend>What do you want to export?</legend>
+    {% if errors.dataset %}<p class="error-message"><span class="visually-hidden">Error:</span> {{ errors.dataset }}</p>{% endif %}
+    {% for key, d in datasets %}
+    {% set id = 'f-dataset' if loop.first else 'f-dataset-' ~ key %}
+    <div class="choice">
+      <div class="checkbox">
+        <input type="radio" id="{{ id }}" name="dataset" value="{{ key }}" aria-describedby="{{ id }}-hint"
+               {% if form.get('dataset', 'measures') == key %}checked{% endif %}>
+        <label for="{{ id }}">{{ d.title }}</label>
+      </div>
+      <p class="hint" id="{{ id }}-hint">{{ d.description }}</p>
+    </div>
+    {% endfor %}
+  </fieldset>
+
+  <div class="field {{ 'field-error' if errors.financial_year else '' }}">
+    <label for="f-financial_year">Financial year <span class="optional">(Measure values only)</span></label>
+    {% if errors.financial_year %}<p class="error-message" id="f-financial_year-error"><span class="visually-hidden">Error:</span> {{ errors.financial_year }}</p>{% endif %}
+    <select id="f-financial_year" name="financial_year" class="input-short">
+      <option value="">All years</option>
+      {% for y in years %}<option value="{{ y }}" {% if form.get('financial_year') == y %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </div>
+
+  <div class="field {{ 'field-error' if errors.quarter else '' }}">
+    <label for="f-quarter">Quarter <span class="optional">(Quarterly report pack only)</span></label>
+    {% if errors.quarter %}<p class="error-message" id="f-quarter-error"><span class="visually-hidden">Error:</span> {{ errors.quarter }}</p>{% endif %}
+    {% set chosen = form.get('quarter', default_quarter) %}
+    <select id="f-quarter" name="quarter" class="input-short">
+      {% for key, text in quarters %}<option value="{{ key }}" {% if chosen == key %}selected{% endif %}>{{ text }}</option>{% endfor %}
+    </select>
+  </div>
+
+  <fieldset class="field {{ 'field-error' if errors.format else '' }}">
+    <legend>Format</legend>
+    {% if errors.format %}<p class="error-message"><span class="visually-hidden">Error:</span> {{ errors.format }}</p>{% endif %}
+    {% for key, text in formats %}
+    {% set id = 'f-format' if loop.first else 'f-format-' ~ key %}
+    <div class="checkbox">
+      <input type="radio" id="{{ id }}" name="format" value="{{ key }}" {% if form.get('format', 'xlsx') == key %}checked{% endif %}>
+      <label for="{{ id }}">{{ text }}</label>
+    </div>
+    {% endfor %}
+  </fieldset>
+  <button type="submit" class="button">Download</button>
+</form>
+
+{% if recent %}
+<h2>{{ 'Recent exports' if role == 'admin' else 'Your recent exports' }}</h2>
+<div class="table-wrap">
+<table class="table">
+  <caption class="visually-hidden">The latest exports, newest first</caption>
+  <thead><tr><th scope="col">When</th><th scope="col">What</th>{% if role == 'admin' %}<th scope="col">Who</th>{% endif %}<th scope="col">Result</th></tr></thead>
+  <tbody>{% for r in recent %}
+    <tr><td>{{ r.requested_at|fmt }}</td>
+      <td>{{ titles[r.dataset] }}{% if r.filter_label and r.filter_label|lower != 'everything' %}, {{ r.filter_label }}{% endif %}</td>
+      {% if role == 'admin' %}<td>{{ r.requested_by or 'Schedule (' ~ r.job_code ~ ')' }}</td>{% endif %}
+      <td>{{ 'Done' if r.status == 'done' else 'Failed' }}: {{ r.message }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

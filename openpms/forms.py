@@ -103,6 +103,15 @@ def table_rules(repo, table, values, key):
     if table == "periods" and values.get("start_date") and values.get("end_date"):
         if values["end_date"] < values["start_date"]:
             e["end_date"] = "The end date must be on or after the start date."
+    if table == "export_jobs":
+        from .exports import FOLDER_NAME
+        if values.get("folder_path") and not FOLDER_NAME.match(values["folder_path"]):
+            e["folder_path"] = "Use only letters, numbers, - and _, with no spaces or slashes, for example full_model."
+        f, day = values.get("frequency"), values.get("run_day")
+        if f == "weekly" and not (day and 1 <= day <= 7):
+            e["run_day"] = "Enter a day of the week from 1 (Monday) to 7 (Sunday)."
+        if f in ("monthly", "quarterly") and not (day and 1 <= day <= 31):
+            e["run_day"] = "Enter a day of the month from 1 to 31. Short months use their last day."
     if table == "settings":
         k = key or values.get("setting_key")
         v = values.get("setting_value")
