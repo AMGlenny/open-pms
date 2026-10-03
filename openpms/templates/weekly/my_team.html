@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}My team, w/c {{ week.strftime('%d %b %Y') }}{% endblock %}
+{% block content %}
+<h1>My team <span class="subtitle">w/c {{ week.strftime('%d %b %Y') }}</span></h1>
+{% include "weekly/_pickers.html" %}
+<div class="columns">
+  <section class="panel" aria-labelledby="h-who">
+    <h2 id="h-who">Updates this week ({{ by_person|length }} of {{ members|length }})</h2>
+    <p>Workload: {% for code, text in workload_labels %}{{ text }} {{ workload[code] }}{{ ', ' if not loop.last else '' }}{% endfor %}.</p>
+    <table class="table">
+      <caption class="visually-hidden">Who has updated this week</caption>
+      <thead><tr><th scope="col">Person</th><th scope="col">This week</th></tr></thead>
+      <tbody>
+      {% for m in members %}
+        <tr><th scope="row">{{ m.display_name }}</th><td>{{ 'Updated' if m.email in by_person else 'Not yet' }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <section class="panel panel-wide" aria-labelledby="h-news">
+    <h2 id="h-news">Successes and communication</h2>
+    {% set news = updates|selectattr('successes')|list + updates|rejectattr('successes')|selectattr('communication')|list %}
+    {% if news %}
+    <ul class="items">
+      {% for u in news %}
+      <li class="item">
+        <p class="item-title">{{ names.get(u.email, u.email) }}</p>
+        {% if u.successes %}<p><strong>Success:</strong> {{ u.successes }}</p>{% endif %}
+        {% if u.communication %}<p><strong>Worth knowing:</strong> {{ u.communication }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p>Nothing shared yet this week.</p>{% endif %}
+  </section>
+  <section class="panel" aria-labelledby="h-wellbeing">
+    <h2 id="h-wellbeing">Team wellbeing</h2>
+    {% if view.show_counts %}
+      <p>Thriving {{ view.counts.thriving }}, OK {{ view.counts.ok }}, struggling {{ view.counts.struggling }} ({{ view.responses }} answers).</p>
+    {% else %}
+      <p>Totals are hidden until at least {{ min_group }} people in the team have answered this week ({{ view.responses }} so far). This stops anyone working out an individual's answer.</p>
+    {% endif %}
+    {% if reports %}
+    <h3>Your direct reports</h3>
+    <p class="hint">Only you can see this.</p>
+    <ul class="items">
+      {% for r in reports %}{% set a = report_answers.get(r.email) %}
+      <li class="item">
+        <p class="item-title">{{ r.display_name }}: {{ wellbeing_labels[a.wellbeing] if a else 'No check-in yet' }}</p>
+        {% if a and a.comments %}<p>{{ a.comments }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -8,7 +8,7 @@ Free, open-source performance management for public bodies, charities and teams 
 
 It runs anywhere: one small Docker container, or plain Python. There's no licence fee and no cloud account to sign up for. Your data stays on your own server.
 
-> **Status: early.** Phase 1 (the foundation) is done: data model, sign-in, admin screens, audit trail and first-run setup. Weekly updates, the measures workflow and exports are next. See the roadmap below.
+> **Status: early.** Phases 1 and 2 are done: the foundation (data model, sign-in, admin, audit trail, setup) and weekly updates. The measures workflow and exports are next. See the roadmap below.
 
 ## Principles
 
@@ -54,7 +54,8 @@ Then open http://localhost:8000/setup. Enter the setup code from the log, name y
 | `openpms/rules.py`, `openpms/workflow.py` | The business rules: RAG, validation, the approval workflow, weekly carry-over and wellbeing privacy |
 | `openpms/periods.py` | Days, weeks, fortnights, months, quarters, financial years (any start month), calendar years, academic years and terms |
 | `openpms/admin.py`, `openpms/templates/` | Plain, accessible web pages. There's no JavaScript framework. |
-| `tests/` | 73 tests: data rules, security, admin, periods, workflow and accessibility |
+| `openpms/weekly.py` | My week, tasks, problems and My team |
+| `tests/` | 87 tests: data rules, security, admin, periods, workflow, weekly pages, wellbeing privacy and accessibility |
 
 The stack is Python, Flask and SQLite (PostgreSQL support is planned). It's deliberately small, so it's easy to look after.
 
@@ -63,8 +64,8 @@ The stack is Python, Flask and SQLite (PostgreSQL support is planned). It's deli
 | Phase | What | Status |
 |---|---|---|
 | 1. Foundation | Data model, sign-in with invites, roles, audit trail, admin screens, first-run setup, Docker | **Done** |
-| 2. Weekly updates | Successes, communication, workload, tasks and problems that carry over each week, the team view, and private wellbeing (only line managers see individual answers) | Next |
-| 3. Measures | Entering values, review, return with comments, versions, reopening, RAG, reminders, setting targets across a range, email notifications | |
+| 2. Weekly updates | Successes, communication, workload, tasks and problems that carry over each week, the team view, and private wellbeing (only line managers see individual answers) | **Done**: [guide](docs/weekly_guide.md) |
+| 3. Measures | Entering values, review, return with comments, versions, reopening, RAG, reminders, setting targets across a range, email notifications | Next |
 | 4. Exports | CSV and Excel with a data dictionary, a README for AI tools, scheduled snapshots, the quarterly report pack and prompt, and a read-only data link for BI tools | |
 | 5. Hardening | Google and Microsoft sign-in, PostgreSQL, tests at volume, a backup tool, accessibility review, and support for hosting several organisations on one installation | |
 

@@ -1,0 +1,19 @@
+{# Week and team pickers: a plain GET form, so they work without JavaScript. #}
+<form method="get" class="pickers" aria-label="Choose week and team">
+  <div class="field">
+    <label for="f-week">Week commencing</label>
+    <p class="hint" id="f-week-hint">Any day in the week works; it's moved to the Monday.</p>
+    <input type="date" id="f-week" name="week" value="{{ week.isoformat() }}" aria-describedby="f-week-hint">
+  </div>
+  <div class="field">
+    <label for="f-team">Team</label>
+    <select id="f-team" name="team">
+      {% for key, path in teams %}<option value="{{ key }}" {% if key == team %}selected{% endif %}>{{ path }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="button button-secondary">Show</button>
+</form>
+<p class="week-nav">
+  <a href="{{ url_for(request.endpoint, week=prev_week.isoformat(), team=team) }}">Previous week<span class="visually-hidden"> (w/c {{ prev_week.strftime('%d %b %Y') }})</span></a>
+  <a href="{{ url_for(request.endpoint, week=next_week.isoformat(), team=team) }}">Next week<span class="visually-hidden"> (w/c {{ next_week.strftime('%d %b %Y') }})</span></a>
+</p>

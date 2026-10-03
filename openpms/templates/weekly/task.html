@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "macros.html" import error_summary %}
+{% from "weekly/_item_fields.html" import select, text %}
+{% block title %}{{ 'Task ' ~ code if code else 'Add a task' }}{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('weekly.my_week', week=week, team=item.org_unit_key) }}">My week</a></p>
+<h1>{{ 'Task ' ~ code if code else 'Add a task' }}</h1>
+{{ error_summary(errors) }}
+<form method="post" novalidate class="form">
+  {{ csrf_field() }}
+  <input type="hidden" name="week" value="{{ week or '' }}">
+  {{ text('task_name', 'Task', item.task_name, errors, hint='What needs doing?', disabled=not can_edit) }}
+  {{ select('priority', 'Priority', priority, item.priority, errors, disabled=not can_edit) }}
+  {{ select('org_unit_key', 'Team', teams, item.org_unit_key, errors, disabled=not can_edit) }}
+  {{ select('contributes_to', 'Contributes to', contrib_options, contrib, errors, hint='The theme, programme, objective or measure this work supports. It links the work to the quarterly report.', blank='Nothing specific', disabled=not can_edit) }}
+  {{ text('contributes_to_note', 'More about the aim', item.contributes_to_note, errors, optional=True, area=True, disabled=not can_edit) }}
+  {{ select('assigned_to', 'Who is doing it', people, item.assigned_to, errors, blank='Nobody yet', disabled=not can_edit) }}
+  {{ select('status', 'Status', [('open', 'Open'), ('complete', 'Complete'), ('cancelled', 'Cancelled')], item.status, errors, disabled=not can_edit) }}
+  {{ text('notes', 'Notes', item.notes, errors, optional=True, area=True, disabled=not can_edit) }}
+  {% if code %}<p class="muted">Raised by {{ names.get(item.raised_by, item.raised_by) }} on {{ item.date_raised|fmt }}{% if item.completed_date %}. Closed {{ item.completed_date|fmt }}{% endif %}.</p>{% endif %}
+  {% if can_edit %}<div class="actions"><button type="submit" class="button">Save task</button>
+  <a href="{{ url_for('weekly.my_week', week=week, team=item.org_unit_key) }}">Cancel</a></div>{% endif %}
+</form>
+{% endblock %}
