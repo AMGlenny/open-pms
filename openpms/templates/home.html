@@ -7,7 +7,8 @@
   <section class="card" aria-labelledby="h-measures">
     <h2 id="h-measures">Your measures</h2>
     <p>You update {{ counts.updater }}, approve {{ counts.approver }} and own {{ counts.owner }} measure(s).</p>
-    <p class="muted">Entering and reviewing values arrives in the next release.</p>
+    <p><a href="{{ url_for('measures.home', tab='update') }}">Values to update</a></p>
+    <p><a href="{{ url_for('measures.home', tab='review') }}">Values to review</a></p>
   </section>
   <section class="card" aria-labelledby="h-weekly">
     <h2 id="h-weekly">Weekly update</h2>

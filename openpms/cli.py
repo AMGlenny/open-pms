@@ -110,7 +110,22 @@ def generate_periods(fy):
     click.echo(f"Added {added} periods. Check the term dates in Admin > Periods.")
 
 
-COMMANDS = [init_db, create_admin, load_demo, generate_periods]
+@click.command("run-jobs")
+@click.option("--force", is_flag=True, help="Run even if today's jobs have already run.")
+@with_appcontext
+def run_jobs(force):
+    """Daily jobs: expected submissions, and reminders on Mondays. The app
+    also runs these by itself on the first request each day."""
+    from . import measures_service
+    conn = _conn()
+    repo = db.Repo(conn, _org(conn))
+    if force:
+        conn.execute("DELETE FROM meta WHERE key = ?", (f"daily_jobs_{repo.org_id}",))
+    result = measures_service.run_daily(repo)
+    click.echo("Already ran today." if result is None else f"Done: {result}")
+
+
+COMMANDS = [init_db, create_admin, load_demo, generate_periods, run_jobs]
 
 
 def register(app):
@@ -130,5 +145,6 @@ HELP = """Open PMS command line.
   openpms create-admin --email you@example.org --name "Your Name"
   openpms load-demo --password "a long demo password"
   openpms generate-periods --fy 2027
+  openpms run-jobs                 (daily jobs; the app also runs them itself)
   openpms run                      (development server)
 """

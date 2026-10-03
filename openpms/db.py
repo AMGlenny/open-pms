@@ -234,7 +234,7 @@ class Repo:
             self._audit(table, row[lst.key], "create", None, None, None, who, when)
         return self.get(table, row[lst.key])
 
-    def update(self, table, key, changes, who, when=None, action="edit"):
+    def update(self, table, key, changes, who, when=None, action="edit", audit=True):
         """Change some fields. Only fields whose value actually changes are
         written and audited. Returns the updated row."""
         lst = LISTS_BY_NAME[table]
@@ -255,6 +255,8 @@ class Repo:
         params = [to_db(cols[f], v) for f, v in changed.items()] + [iso(when), who, self.org_id, key]
         self.conn.execute(f"UPDATE {table} SET {sets} WHERE org_id = ? AND {lst.key} = ?", params)
         for field, new in changed.items():
+            if not audit:
+                break
             act = action
             if action == "edit" and field in ("status", "version_status"):
                 act = "status_change"

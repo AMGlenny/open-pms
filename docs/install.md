@@ -54,8 +54,18 @@ Once HTTPS works, set `OPENPMS_SECURE_COOKIES=1` (in `docker-compose.yml` or you
 | `OPENPMS_SECRET_KEY` | generated and saved in the instance folder | Signs sessions. Set it yourself if you run several servers. |
 | `OPENPMS_SECURE_COOKIES` | `0` | Set to `1` once served over HTTPS |
 | `OPENPMS_SETUP_CODE` | random, printed in the log | Choose your own first-run setup code |
+| `OPENPMS_SMTP_HOST` | not set | Mail server for notifications. Without it, emails are only logged and everything else works. |
+| `OPENPMS_SMTP_PORT`, `OPENPMS_SMTP_USER`, `OPENPMS_SMTP_PASSWORD` | 587, none, none | Mail server sign-in |
+| `OPENPMS_SMTP_FROM` | `openpms@localhost` | The From address on emails |
+| `OPENPMS_SMTP_STARTTLS` | `1` | Set to `0` only for a mail server that doesn't support encryption |
 
 Everything else, such as your organisation name, financial year start and wellbeing group size, is set in the app under **Admin > Settings**.
+
+## Daily jobs
+
+Each morning, Open PMS creates an empty value for every measure whose period has just ended, and on Mondays it emails reminders. It does this by itself the first time anyone uses it each day, so you don't need cron.
+
+If you'd rather run it on a schedule, use `openpms run-jobs` (it only runs once a day, however often it's called).
 
 ## Backups
 

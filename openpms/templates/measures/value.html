@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}{{ measure.measure_name }}, {{ period.period_label }}{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('measures.home') }}">Measures</a></p>
+<h1>{{ measure.measure_name }} <span class="subtitle">{{ period.period_label }}. {{ status_text[sub.status] }}{% if sub.expected_by %}. Expected by {{ sub.expected_by|fmt }}{% endif %}</span></h1>
+{% if sub.approved_version and sub.status != 'approved' %}
+  <div class="notice" role="status">A corrected version is in progress. Reports still show approved version {{ sub.approved_version }} until a new one is approved.</div>
+{% endif %}
+{% if errors %}
+<div class="error-summary" role="alert" aria-labelledby="error-summary-title">
+  <h2 id="error-summary-title">There is a problem</h2>
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+<div class="columns">
+  <section class="panel" aria-labelledby="h-value">
+    <h2 id="h-value">Value</h2>
+    <dl class="summary compact">
+      <div class="summary-row"><dt>Code</dt><dd>{{ measure.measure_code }}{% if measure.source_ref %} (ref {{ measure.source_ref }}){% endif %}</dd></div>
+      <div class="summary-row"><dt>Definition</dt><dd>{{ measure.definition or 'Not given' }}</dd></div>
+      <div class="summary-row"><dt>Unit</dt><dd>{{ measure.unit|replace('_', '/') }}{% if measure.unit == 'percent' %} (enter 58 for 58%){% endif %}</dd></div>
+      <div class="summary-row"><dt>Direction</dt><dd>{{ {'higher_is_better': 'Higher is better', 'lower_is_better': 'Lower is better'}.get(measure.polarity, 'No better direction') }}</dd></div>
+      <div class="summary-row"><dt>Target</dt><dd>{{ fmt_value(measure, refs.target) if refs.target is not none else 'No target set' }}</dd></div>
+      <div class="summary-row"><dt>Tolerance</dt><dd>{% if not tolerance_used %}Not used (not a KPI or OKR){% elif refs.tolerance is not none %}{{ fmt_value(measure, refs.tolerance) }}{% else %}None{% endif %}</dd></div>
+      {% if refs.baseline is not none %}<div class="summary-row"><dt>Baseline</dt><dd>{{ fmt_value(measure, refs.baseline) }}</dd></div>{% endif %}
+    </dl>
+
+    {% if 'save_draft' in acts %}
+      {% set v = typed or current or {} %}
+      <form method="post" novalidate>
+        {{ csrf_field() }}
+        <input type="hidden" name="key" value="{{ sub.submission_key }}">
+        <div class="checkbox field">
+          <input type="checkbox" id="f-missing" name="value_missing" value="1" {% if v.value_missing %}checked{% endif %}>
+          <label for="f-missing">No value available for this period</label>
+        </div>
+        {% if measure.unit == 'text' %}
+          <div class="field"><label for="f-value_text">Value</label>
+          <textarea id="f-value_text" name="value_text" rows="4">{{ v.value_text or '' }}</textarea></div>
+        {% elif measure.unit == 'yes_no' %}
+          <fieldset class="field">
+            <legend>Value</legend>
+            <div class="checkbox"><input type="radio" id="f-yes" name="value_yes_no" value="yes" {% if v.value_number == 1 %}checked{% endif %}><label for="f-yes">Yes</label></div>
+            <div class="checkbox"><input type="radio" id="f-no" name="value_yes_no" value="no" {% if v.value_number == 0 and v.value_number is not none %}checked{% endif %}><label for="f-no">No</label></div>
+          </fieldset>
+        {% else %}
+          <div class="field"><label for="f-value_number">Value</label>
+          <p class="hint" id="f-value_number-hint">{{ {'percent': 'A percentage from 0 to 100, for example 58.', 'gbp': 'Pounds, for example 1250.50.', 'count': 'A whole number.'}.get(measure.unit, 'A number.') }}</p>
+          <input type="text" inputmode="decimal" class="input-short" id="f-value_number" name="value_number" aria-describedby="f-value_number-hint"
+                 value="{{ v.value_number if v.value_number is not none else '' }}"></div>
+        {% endif %}
+        <div class="field"><label for="f-narrative">Narrative</label>
+          <p class="hint" id="f-narrative-hint">What's behind the figure, and what's being done about it. Needed if there's no value or it's off track.</p>
+          <textarea id="f-narrative" name="narrative" rows="6" aria-describedby="f-narrative-hint">{{ v.narrative or '' }}</textarea></div>
+        <div class="field"><label for="f-quality">Data quality</label>
+          <select id="f-quality" name="data_quality">
+            {% for code, text in quality %}<option value="{{ code }}" {% if (v.data_quality or 'unverified') == code %}selected{% endif %}>{{ text }}</option>{% endfor %}
+          </select></div>
+        {% if rag_now %}<p class="rag-line">If submitted as saved: <span class="rag rag-{{ rag_now }}">{{ rag_text[rag_now] }}</span></p>{% endif %}
+        <div class="actions">
+          <button type="submit" name="action" value="submit" class="button">Submit for review</button>
+          <button type="submit" name="action" value="save_draft" class="button button-secondary">Save draft</button>
+        </div>
+      </form>
+    {% else %}
+      {% if current %}
+        <dl class="summary">
+          <div class="summary-row"><dt>Value</dt><dd>{{ fmt_value(measure, current.value_number, current.value_text, current.value_missing) }}</dd></div>
+          <div class="summary-row"><dt>Narrative</dt><dd>{{ current.narrative or 'None' }}</dd></div>
+          <div class="summary-row"><dt>Data quality</dt><dd>{{ current.data_quality }}</dd></div>
+          {% if rag_now %}<div class="summary-row"><dt>RAG</dt><dd><span class="rag rag-{{ rag_now }}">{{ rag_text[rag_now] }}</span></dd></div>{% endif %}
+        </dl>
+      {% else %}<p>No value has been entered yet.</p>{% endif %}
+      <p class="muted">
+        {% if sub.status == 'submitted' %}Submitted for review. It's locked until it's approved or returned.
+        {% elif sub.status == 'approved' %}Approved and locked.{% if 'reopen' not in acts %} An admin can reopen it if it needs correcting.{% endif %}
+        {% elif role == 'viewer' %}You have read-only access.
+        {% else %}Only this measure's updaters can enter the value.{% endif %}
+      </p>
+    {% endif %}
+  </section>
+
+  <section class="panel" aria-labelledby="h-review">
+    <h2 id="h-review">Review</h2>
+    {% if 'approve' in acts %}
+      <form method="post" novalidate>
+        {{ csrf_field() }}
+        <input type="hidden" name="key" value="{{ sub.submission_key }}">
+        <div class="field"><label for="f-comment">Comment</label>
+          <p class="hint" id="f-comment-hint">Needed to return it. Optional when approving. Kept separate from the narrative and never exported.</p>
+          <textarea id="f-comment" name="comment" rows="4" aria-describedby="f-comment-hint"></textarea></div>
+        <div class="actions">
+          <button type="submit" name="action" value="approve" class="button">Approve</button>
+          <button type="submit" name="action" value="return" class="button button-secondary">Return for changes</button>
+        </div>
+      </form>
+    {% elif own_entry %}
+      <p>You entered this value, so another approver needs to review it.</p>
+    {% endif %}
+    {% if 'reopen' in acts %}
+      <form method="post" novalidate>
+        {{ csrf_field() }}
+        <input type="hidden" name="key" value="{{ sub.submission_key }}">
+        <div class="field"><label for="f-reason">Reason for reopening</label>
+          <textarea id="f-reason" name="comment" rows="3"></textarea></div>
+        <button type="submit" name="action" value="reopen" class="button button-secondary">Reopen for correction</button>
+      </form>
+    {% endif %}
+    <h3>Comments ({{ comments|length }})</h3>
+    {% if comments %}
+    <ul class="items">
+      {% for c in comments %}
+      <li class="item">
+        <p class="item-meta">{{ c.action|capitalize }} by {{ names.get(c.reviewer_email, c.reviewer_email) }}, {{ c.comment_date|fmt }}, version {{ c.version_no }}. {{ 'Resolved' if c.resolved else 'Open' }}.</p>
+        <p>{{ c.comment }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p>No comments.</p>{% endif %}
+  </section>
+
+  <section class="panel" aria-labelledby="h-versions">
+    <h2 id="h-versions">Versions ({{ versions|length }})</h2>
+    {% if versions %}
+    <ul class="items">
+      {% for v in versions %}{% set prev = versions|selectattr('version_no', 'equalto', v.version_no - 1)|first %}
+      <li class="item">
+        <p class="item-title">Version {{ v.version_no }}: {{ v.version_status|capitalize }}</p>
+        <p class="item-meta">{{ names.get(v.entered_by, v.entered_by) }}, {{ (v.submitted_date or v.entered_date)|fmt }}. Value {{ fmt_value(measure, v.value_number, v.value_text, v.value_missing) or 'blank' }}. Quality {{ v.data_quality }}.</p>
+        {% if prev %}
+          {% set changed = [] %}
+          {% if prev.value_number != v.value_number or prev.value_text != v.value_text %}{% set _ = changed.append('value (' ~ (fmt_value(measure, prev.value_number, prev.value_text, prev.value_missing) or 'blank') ~ ' to ' ~ (fmt_value(measure, v.value_number, v.value_text, v.value_missing) or 'blank') ~ ')') %}{% endif %}
+          {% if prev.value_missing != v.value_missing %}{% set _ = changed.append('no-value flag') %}{% endif %}
+          {% if prev.narrative != v.narrative %}{% set _ = changed.append('narrative') %}{% endif %}
+          {% if prev.data_quality != v.data_quality %}{% set _ = changed.append('data quality') %}{% endif %}
+          <p><strong>Changed since version {{ prev.version_no }}:</strong> {{ changed|join(', ') if changed else 'nothing' }}.</p>
+        {% else %}<p>First version.</p>{% endif %}
+        <p class="pre">{{ v.narrative or 'No narrative.' }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p>No versions yet.</p>{% endif %}
+    <h3>Recent approved values</h3>
+    {% if history %}
+    <ul class="items">
+      {% for r in history %}<li class="item">{{ r.period_label }}: {{ fmt_value(measure, r.value_number, r.value_text, r.value_missing) }}. <span class="rag rag-{{ r.rag_status }}">{{ rag_text[r.rag_status] }}</span></li>{% endfor %}
+    </ul>
+    {% else %}<p>None yet.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

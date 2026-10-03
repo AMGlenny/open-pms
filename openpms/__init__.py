@@ -87,11 +87,24 @@ def create_app(config=None):
     app.jinja_env.filters["fmt"] = fmt
     app.jinja_env.globals["version"] = __version__
 
-    from . import admin, auth, security, web, weekly
+    from . import admin, auth, measures, security, web, weekly
     security.init_app(app)
     auth.init_app(app)
     app.register_blueprint(web.bp)
     app.register_blueprint(weekly.bp)
+    app.register_blueprint(measures.bp)
+
+    @app.before_request
+    def daily_jobs():
+        """Create expected submissions (and send Monday reminders) once a day,
+        on the first signed-in request, so no cron job is needed."""
+        if g.get("repo") is None or app.config.get("DISABLE_DAILY_JOBS"):
+            return
+        from . import measures_service
+        try:
+            measures_service.run_daily(g.repo)
+        except Exception:  # never block someone's page because a background job failed
+            app.logger.exception("Daily jobs failed")
     app.register_blueprint(auth.bp)
     app.register_blueprint(admin.bp)
 
