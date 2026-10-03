@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Link for {{ person.display_name }}{% endblock %}
+{% block content %}
+<h1>{{ 'Invite link' if purpose == 'invite' else 'Password reset link' }} for {{ person.display_name }}</h1>
+<p>Send this link to {{ person.email }}. It works once, for {{ days }} days, and lets them {{ 'set' if purpose == 'invite' else 'choose a new' }} password.</p>
+<label for="f-link">Link</label>
+<input type="text" id="f-link" class="input-wide" value="{{ link }}" readonly>
+<p class="muted">This is the only time the link is shown. If it's lost, create a new one.</p>
+<p><a href="{{ url_for('admin.view_row', table='people', key=person.email) }}">Back to {{ person.display_name }}</a></p>
+{% endblock %}

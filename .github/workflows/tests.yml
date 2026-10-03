@@ -1,0 +1,35 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e .
+      - run: python -m unittest discover -s tests -t . -v
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t openpms:ci .
+      - name: Start it and check it answers
+        run: |
+          docker run -d --name pms -p 8000:8000 openpms:ci
+          for i in $(seq 1 30); do curl -fsS http://localhost:8000/healthz && break; sleep 1; done
+          curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:8000/setup
+          docker logs pms 2>&1 | grep -q "setup code"

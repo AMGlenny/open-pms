@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ conf.title }}{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('admin.index') }}">Admin</a></p>
+<h1>{{ conf.title }}</h1>
+{% if conf.help %}<p class="lead">{{ conf.help }}</p>{% endif %}
+<p><a class="button" href="{{ url_for('admin.new_row', table=table) }}">Add to {{ conf.title|lower }}</a></p>
+<form method="get" class="search" role="search">
+  <label for="f-q">Search</label>
+  <input type="search" id="f-q" name="q" value="{{ q }}">
+  {% if conf.inactive %}
+  <div class="checkbox">
+    <input type="checkbox" id="f-show" name="show" value="all" {% if show_all %}checked{% endif %}>
+    <label for="f-show">Include {{ 'retired' if conf.inactive[0] == 'status' else 'inactive' }}</label>
+  </div>
+  {% endif %}
+  <button type="submit" class="button button-secondary">Search</button>
+</form>
+{% if table == 'periods' %}
+<form method="post" action="{{ url_for('admin.generate_periods') }}" class="inline-form">
+  {{ csrf_field() }}
+  <label for="f-fy">Add a financial year's periods, starting in</label>
+  <input type="text" inputmode="numeric" id="f-fy" name="fy" class="input-short" placeholder="2027">
+  <button type="submit" class="button button-secondary">Add periods</button>
+</form>
+{% endif %}
+<p class="muted" role="status">{{ '{:,}'.format(total) }} found.</p>
+<div class="table-wrap">
+<table class="table">
+  <caption class="visually-hidden">{{ conf.title }}</caption>
+  <thead><tr>{% for c in cols %}<th scope="col">{{ label(c.name) }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      {% for c in cols %}
+        {% if loop.first %}<th scope="row"><a href="{{ url_for('admin.view_row', table=table, key=r[key]) }}">{{ r[c.name]|fmt }}</a></th>
+        {% else %}<td>{{ r[c.name]|fmt }}</td>{% endif %}
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if pages > 1 %}
+<nav aria-label="Pages" class="pager">
+  {% if page > 1 %}<a href="{{ url_for('admin.list_rows', table=table, q=q, show='all' if show_all else None, page=page-1) }}">Previous</a>{% endif %}
+  <span>Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}<a href="{{ url_for('admin.list_rows', table=table, q=q, show='all' if show_all else None, page=page+1) }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

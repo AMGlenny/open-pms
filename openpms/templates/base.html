@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} - {{ org_name or "Open PMS" }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="{{ url_for('web.home') }}">{{ org_name or "Open PMS" }}</a>
+      {% if person %}
+      <nav aria-label="Main">
+        <ul class="nav">
+          <li><a href="{{ url_for('web.home') }}" {% if request.endpoint == 'web.home' %}aria-current="page"{% endif %}>Home</a></li>
+          {% if role == 'admin' %}<li><a href="{{ url_for('admin.index') }}" {% if request.blueprint == 'admin' %}aria-current="page"{% endif %}>Admin</a></li>{% endif %}
+        </ul>
+      </nav>
+      <form method="post" action="{{ url_for('auth.logout') }}" class="signout">
+        {{ csrf_field() }}
+        <span class="who">{{ person.display_name }}</span>
+        <button type="submit" class="button button-secondary-dark">Sign out</button>
+      </form>
+      {% endif %}
+    </div>
+  </header>
+  <main id="main" class="wrap" tabindex="-1">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="notice {{ 'notice-error' if category == 'error' else '' }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">Open PMS {{ version }}. Free and open-source software (MIT licence).</div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# docker compose up -d   then open http://localhost:8000/setup
+# The setup code is in the log:   docker compose logs openpms | grep "setup code"
+services:
+  openpms:
+    build: .
+    image: openpms:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - openpms-data:/data
+    environment:
+      # Set to "1" once you serve Open PMS over HTTPS (see docs/install.md).
+      OPENPMS_SECURE_COOKIES: "0"
+    restart: unless-stopped
+
+volumes:
+  openpms-data:

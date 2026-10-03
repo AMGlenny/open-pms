@@ -1,0 +1,54 @@
+{% macro error_summary(errors) %}
+{% if errors %}
+<div class="error-summary" role="alert" aria-labelledby="error-summary-title">
+  <h2 id="error-summary-title">There is a problem</h2>
+  <ul>
+    {% for name, message in errors.items() %}
+      <li>{% if name == '_form' %}{{ message }}{% else %}<a href="#f-{{ name }}">{{ message }}</a>{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro field(f, errors) %}
+{% set err = errors.get(f.name) %}
+{% set described = [] %}
+{% if f.hint %}{% set _ = described.append('f-' ~ f.name ~ '-hint') %}{% endif %}
+{% if err %}{% set _ = described.append('f-' ~ f.name ~ '-error') %}{% endif %}
+<div class="field {{ 'field-error' if err else '' }}">
+  {% if f.readonly %}
+    <p class="label-text">{{ f.label }}</p>
+    <p class="readonly" id="f-{{ f.name }}">{{ f.value }}</p>
+  {% elif f.col.type == 'bool' %}
+    <div class="checkbox">
+      <input type="checkbox" id="f-{{ f.name }}" name="{{ f.name }}" value="1" {% if f.value %}checked{% endif %}
+             {% if described %}aria-describedby="{{ described|join(' ') }}"{% endif %}>
+      <label for="f-{{ f.name }}">{{ f.label }}</label>
+    </div>
+    {% if f.hint %}<p class="hint" id="f-{{ f.name }}-hint">{{ f.hint }}</p>{% endif %}
+  {% else %}
+    <label for="f-{{ f.name }}">{{ f.label }}{% if not f.col.required %} <span class="optional">(optional)</span>{% endif %}</label>
+    {% if f.hint %}<p class="hint" id="f-{{ f.name }}-hint">{{ f.hint }}</p>{% endif %}
+    {% if err %}<p class="error-message" id="f-{{ f.name }}-error"><span class="visually-hidden">Error:</span> {{ err }}</p>{% endif %}
+    {% set attrs %}id="f-{{ f.name }}" name="{{ f.name }}" {% if described %}aria-describedby="{{ described|join(' ') }}"{% endif %} {% if err %}aria-invalid="true"{% endif %}{% endset %}
+    {% if f.options is not none %}
+      <select {{ attrs }}>
+        {% if not f.col.required or f.value is none %}<option value="">{{ 'Choose' if f.col.required else 'None' }}</option>{% endif %}
+        {% for value, text in f.options %}
+          <option value="{{ value }}" {% if f.value is not none and value|string == f.value|string %}selected{% endif %}>{{ text }}</option>
+        {% endfor %}
+      </select>
+    {% elif f.col.type == 'note' %}
+      <textarea rows="4" {{ attrs }}>{{ f.value if f.value is not none else '' }}</textarea>
+    {% elif f.col.type == 'date' %}
+      <input type="date" {{ attrs }} value="{{ f.value.isoformat() if f.value else '' }}">
+    {% elif f.col.type in ('number', 'integer') %}
+      <input type="text" inputmode="decimal" class="input-short" {{ attrs }} value="{{ f.value if f.value is not none else '' }}">
+    {% else %}
+      <input type="{{ 'email' if f.name == 'email' else 'text' }}" {{ attrs }} value="{{ f.value if f.value is not none else '' }}"
+             {% if f.name == 'email' %}autocomplete="email" spellcheck="false"{% endif %}>
+    {% endif %}
+  {% endif %}
+</div>
+{% endmacro %}

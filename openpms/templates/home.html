@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<h1>Hello, {{ person.display_name }}</h1>
+<p class="lead">This is your organisation's performance system.</p>
+<div class="cards">
+  <section class="card" aria-labelledby="h-measures">
+    <h2 id="h-measures">Your measures</h2>
+    <p>You update {{ counts.updater }}, approve {{ counts.approver }} and own {{ counts.owner }} measure(s).</p>
+    <p class="muted">Entering and reviewing values arrives in the next release.</p>
+  </section>
+  <section class="card" aria-labelledby="h-weekly">
+    <h2 id="h-weekly">Weekly update</h2>
+    <p class="muted">The weekly update for tasks, problems, successes and wellbeing arrives in the next release.</p>
+  </section>
+  {% if role == 'admin' %}
+  <section class="card" aria-labelledby="h-admin">
+    <h2 id="h-admin">Admin</h2>
+    <p><a href="{{ url_for('admin.index') }}">Manage measures, people, teams, periods and settings</a></p>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "macros.html" import error_summary %}
+{% block title %}Set up Open PMS{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Set up Open PMS</h1>
+  <p class="lead">Name your organisation and create the first admin account. You only do this once.</p>
+  {{ error_summary(errors) }}
+  <form method="post" novalidate>
+    {{ csrf_field() }}
+    {% for name, text, hint, type, auto in [
+        ('setup_code', "Setup code", "Printed in the server log when Open PMS started. It stops anyone else setting up your installation.", 'text', 'off'),
+        ('org_name', "Organisation name", "Shown in the header and on exports.", 'text', 'organization'),
+        ('display_name', "Your name", None, 'text', 'name'),
+        ('email', "Your email address", "You'll use it to sign in.", 'email', 'username')] %}
+    <div class="field {{ 'field-error' if errors[name] else '' }}">
+      <label for="f-{{ name }}">{{ text }}</label>
+      {% if hint %}<p class="hint" id="f-{{ name }}-hint">{{ hint }}</p>{% endif %}
+      {% if errors[name] %}<p class="error-message" id="f-{{ name }}-error"><span class="visually-hidden">Error:</span> {{ errors[name] }}</p>{% endif %}
+      <input type="{{ type }}" id="f-{{ name }}" name="{{ name }}" value="{{ values[name] or '' }}" autocomplete="{{ auto }}"
+             {% if hint or errors[name] %}aria-describedby="{% if hint %}f-{{ name }}-hint{% endif %}{% if errors[name] %} f-{{ name }}-error{% endif %}"{% endif %}
+             {% if errors[name] %}aria-invalid="true"{% endif %}>
+    </div>
+    {% endfor %}
+    <div class="field {{ 'field-error' if errors.fy_start_month else '' }}">
+      <label for="f-fy_start_month">Your financial year starts in</label>
+      <p class="hint" id="f-fy_start_month-hint">April for most UK public bodies. Choose January if you work to the calendar year.</p>
+      {% if errors.fy_start_month %}<p class="error-message" id="f-fy_start_month-error"><span class="visually-hidden">Error:</span> {{ errors.fy_start_month }}</p>{% endif %}
+      <select id="f-fy_start_month" name="fy_start_month" aria-describedby="f-fy_start_month-hint{% if errors.fy_start_month %} f-fy_start_month-error{% endif %}">
+        {% for m in months %}<option value="{{ loop.index }}" {% if (values.fy_start_month or '4') == loop.index|string %}selected{% endif %}>{{ m }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field {{ 'field-error' if errors.password else '' }}">
+      <label for="f-password">Password</label>
+      <p class="hint" id="f-password-hint">At least 12 characters. A short phrase of four or five words works well.</p>
+      {% if errors.password %}<p class="error-message" id="f-password-error"><span class="visually-hidden">Error:</span> {{ errors.password }}</p>{% endif %}
+      <input type="password" id="f-password" name="password" autocomplete="new-password" aria-describedby="f-password-hint{% if errors.password %} f-password-error{% endif %}" {% if errors.password %}aria-invalid="true"{% endif %}>
+    </div>
+    <div class="field {{ 'field-error' if errors.confirm else '' }}">
+      <label for="f-confirm">Type the password again</label>
+      {% if errors.confirm %}<p class="error-message" id="f-confirm-error"><span class="visually-hidden">Error:</span> {{ errors.confirm }}</p>{% endif %}
+      <input type="password" id="f-confirm" name="confirm" autocomplete="new-password" {% if errors.confirm %}aria-describedby="f-confirm-error" aria-invalid="true"{% endif %}>
+    </div>
+    <button type="submit" class="button">Set up</button>
+  </form>
+</div>
+{% endblock %}
