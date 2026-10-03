@@ -57,7 +57,8 @@ def contrast(a, b):
 
 
 class PageTests(AppCase, unittest.TestCase):
-    PAGES = ["/", "/admin/", "/admin/audit", "/admin/measures", "/admin/measures/new", "/admin/measures/item?key=PM-0002",
+    PAGES = ["/", "/week?week=2026-09-21&team=ST-SDS-A", "/team?week=2026-09-21&team=ST-SDS-A", "/tasks/new",
+             "/tasks/TSK-00001", "/problems/new", "/problems/PRB-00001", "/admin/", "/admin/audit", "/admin/measures", "/admin/measures/new", "/admin/measures/item?key=PM-0002",
              "/admin/measures/edit?key=PM-0002", "/admin/measures/history?key=PM-0002", "/admin/people",
              "/admin/people/new", "/admin/people/item?key=priya.shah@example.org", "/admin/periods",
              "/admin/settings/edit?key=fy_start_month", "/admin/reference_values/new", "/no-such-page"]

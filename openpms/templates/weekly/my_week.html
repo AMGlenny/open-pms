@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% from "macros.html" import error_summary %}
+{% block title %}My week, w/c {{ week.strftime('%d %b %Y') }}{% endblock %}
+{% block content %}
+<h1>My week <span class="subtitle">w/c {{ week.strftime('%d %b %Y') }}</span></h1>
+{% include "weekly/_pickers.html" %}
+{{ error_summary(errors) }}
+{% if not team %}
+  <p>There are no teams yet. An admin needs to add them first.</p>
+{% else %}
+<form method="post" novalidate>
+  {{ csrf_field() }}
+  <input type="hidden" name="week" value="{{ week.isoformat() }}">
+  <input type="hidden" name="team" value="{{ team }}">
+  <div class="columns">
+    <section class="panel" aria-labelledby="h-update">
+      <h2 id="h-update">My update</h2>
+      <p class="muted" role="status">{% if update %}Last saved {{ update.submitted_at|fmt }}.{% else %}Not saved yet for this week.{% endif %}</p>
+      <div class="field">
+        <label for="f-successes">Successes <span class="optional">(optional)</span></label>
+        <p class="hint" id="f-successes-hint">Any success you've had or heard about.</p>
+        <textarea id="f-successes" name="successes" rows="4" aria-describedby="f-successes-hint" {% if not can_edit %}disabled{% endif %}>{{ update.successes if update and update.successes else '' }}</textarea>
+      </div>
+      <div class="field">
+        <label for="f-communication">Communication <span class="optional">(optional)</span></label>
+        <p class="hint" id="f-communication-hint">Anything that would help if it were more widely known.</p>
+        <textarea id="f-communication" name="communication" rows="3" aria-describedby="f-communication-hint" {% if not can_edit %}disabled{% endif %}>{{ update.communication if update and update.communication else '' }}</textarea>
+      </div>
+      <div class="field {{ 'field-error' if errors.workload else '' }}">
+        <label for="f-workload">Workload <span class="optional">(optional)</span></label>
+        {% if errors.workload %}<p class="error-message" id="f-workload-error"><span class="visually-hidden">Error:</span> {{ errors.workload }}</p>{% endif %}
+        <select id="f-workload" name="workload" {% if not can_edit %}disabled{% endif %}>
+          <option value="">Not answered</option>
+          {% for code, text in workload %}<option value="{{ code }}" {% if update and update.workload == code %}selected{% endif %}>{{ text }}</option>{% endfor %}
+        </select>
+      </div>
+      <h3>Wellbeing (private)</h3>
+      <p class="hint" id="f-wellbeing-hint">
+        {% if manager %}Only your line manager sees your answer. Your team only ever sees totals, and only when enough people have answered.
+        {% else %}No line manager is recorded for you, so only you can see your answer. Your team only ever sees totals.{% endif %}
+      </p>
+      <div class="field {{ 'field-error' if errors.wellbeing else '' }}">
+        <label for="f-wellbeing">How are you doing this week? <span class="optional">(optional)</span></label>
+        {% if errors.wellbeing %}<p class="error-message" id="f-wellbeing-error"><span class="visually-hidden">Error:</span> {{ errors.wellbeing }}</p>{% endif %}
+        <select id="f-wellbeing" name="wellbeing" aria-describedby="f-wellbeing-hint" {% if not can_edit %}disabled{% endif %}>
+          <option value="">Not answered</option>
+          {% for code, text in wellbeing %}<option value="{{ code }}" {% if checkin and checkin.wellbeing == code %}selected{% endif %}>{{ text }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-wellbeing_comments">Anything you want your line manager to know <span class="optional">(optional)</span></label>
+        <textarea id="f-wellbeing_comments" name="wellbeing_comments" rows="3" {% if not can_edit %}disabled{% endif %}>{{ checkin.comments if checkin and checkin.comments else '' }}</textarea>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-tasks">
+      <h2 id="h-tasks">Tasks <span class="count">({{ tasks|selectattr('status', 'equalto', 'open')|list|length }} open)</span></h2>
+      <p class="hint">Open tasks carry over each week. Tick what's done, then save.</p>
+      {% if can_edit %}<p><a href="{{ url_for('weekly.new_task', team=team, week=week.isoformat()) }}">Add a task</a></p>{% endif %}
+      {% if tasks %}
+      <ul class="items">
+        {% for t in tasks %}
+        <li class="item">
+          <div class="checkbox">
+            <input type="checkbox" id="done-{{ t.task_code }}" name="done_{{ t.task_code }}" value="1"
+                   {% if t.status == 'complete' %}checked{% endif %} {% if not can_edit or t.status == 'cancelled' %}disabled{% endif %}
+                   aria-describedby="meta-{{ t.task_code }}">
+            <label for="done-{{ t.task_code }}">{{ t.task_name }}{% if t.status == 'cancelled' %} (cancelled){% endif %}</label>
+          </div>
+          <p class="item-meta" id="meta-{{ t.task_code }}">
+            {{ priority[t.priority] }}. Raised {{ t.date_raised.strftime('%d %b') }}{% if t.assigned_to %}. {{ names.get(t.assigned_to, t.assigned_to) }}{% endif %}.
+            <a href="{{ url_for('weekly.task', code=t.task_code, week=week.isoformat()) }}">Open<span class="visually-hidden"> task: {{ t.task_name }}</span></a>
+          </p>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p>No open tasks for this team.</p>{% endif %}
+    </section>
+
+    <section class="panel" aria-labelledby="h-problems">
+      <h2 id="h-problems">Problems <span class="count">({{ problems|selectattr('status', 'equalto', 'open')|list|length }} open)</span></h2>
+      {% if can_edit %}<p><a href="{{ url_for('weekly.new_problem', team=team, week=week.isoformat()) }}">Raise a problem</a></p>{% endif %}
+      {% if problems %}
+      <ul class="items">
+        {% for p in problems %}
+        <li class="item">
+          <p class="item-title"><a href="{{ url_for('weekly.problem', code=p.problem_code, week=week.isoformat()) }}">{{ p.problem_title }}</a>{% if p.status == 'closed' %} (closed){% endif %}</p>
+          <p class="item-meta">Impact {{ levels[p.impact]|lower }}, urgency {{ levels[p.urgency]|lower }}. Owner: {{ names.get(p.problem_owner, 'not set') }}. Raised by {{ names.get(p.raised_by, p.raised_by) }}.</p>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p>No open problems for this team.</p>{% endif %}
+    </section>
+  </div>
+  {% if can_edit %}<p><button type="submit" class="button">Save my week</button></p>
+  {% else %}<p class="muted">You have read-only access.</p>{% endif %}
+</form>
+{% endif %}
+{% endblock %}

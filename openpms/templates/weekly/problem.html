@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import error_summary %}
+{% from "weekly/_item_fields.html" import select, text %}
+{% block title %}{{ 'Problem ' ~ code if code else 'Raise a problem' }}{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('weekly.my_week', week=week, team=item.org_unit_key) }}">My week</a></p>
+<h1>{{ 'Problem ' ~ code if code else 'Raise a problem' }}</h1>
+{{ error_summary(errors) }}
+<form method="post" novalidate class="form">
+  {{ csrf_field() }}
+  <input type="hidden" name="week" value="{{ week or '' }}">
+  {{ text('problem_title', 'Short title', item.problem_title, errors, disabled=not can_edit) }}
+  {{ text('problem_statement', 'Problem statement', item.problem_statement, errors, hint='What is the problem, and what is it affecting?', area=True, disabled=not can_edit) }}
+  {{ select('org_unit_key', 'Team', teams, item.org_unit_key, errors, disabled=not can_edit) }}
+  {{ select('impact', 'Impact', levels, item.impact, errors, disabled=not can_edit) }}
+  {{ select('urgency', 'Urgency', levels, item.urgency, errors, disabled=not can_edit) }}
+  {{ select('problem_owner', 'Problem owner', people, item.problem_owner, errors, blank='Not set', disabled=not can_edit) }}
+  {{ text('target_resolution_date', 'Target resolution date', item.target_resolution_date, errors, optional=True, type='date', disabled=not can_edit) }}
+  {{ select('contributes_to', 'Affects', contrib_options, contrib, errors, hint='The theme, programme, objective or measure it affects.', blank='Nothing specific', disabled=not can_edit) }}
+  {{ select('status', 'Status', [('open', 'Open'), ('closed', 'Closed')], item.status, errors, disabled=not can_edit) }}
+  {{ text('resolution', 'Resolution', item.resolution, errors, hint='How it was resolved. Needed before you close it.', optional=True, area=True, disabled=not can_edit) }}
+  {{ text('notes', 'Notes', item.notes, errors, optional=True, area=True, disabled=not can_edit) }}
+  {% if code %}<p class="muted">Raised by {{ names.get(item.raised_by, item.raised_by) }} on {{ item.raised_on|fmt }}.</p>{% endif %}
+  {% if can_edit %}<div class="actions"><button type="submit" class="button">Save problem</button>
+  <a href="{{ url_for('weekly.my_week', week=week, team=item.org_unit_key) }}">Cancel</a></div>{% endif %}
+</form>
+{% endblock %}

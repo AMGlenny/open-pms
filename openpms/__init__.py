@@ -87,10 +87,11 @@ def create_app(config=None):
     app.jinja_env.filters["fmt"] = fmt
     app.jinja_env.globals["version"] = __version__
 
-    from . import admin, auth, security, web
+    from . import admin, auth, security, web, weekly
     security.init_app(app)
     auth.init_app(app)
     app.register_blueprint(web.bp)
+    app.register_blueprint(weekly.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(admin.bp)
 

@@ -11,7 +11,9 @@
   </section>
   <section class="card" aria-labelledby="h-weekly">
     <h2 id="h-weekly">Weekly update</h2>
-    <p class="muted">The weekly update for tasks, problems, successes and wellbeing arrives in the next release.</p>
+    <p>Share successes, tick off tasks, raise problems and check in on wellbeing.</p>
+    <p><a href="{{ url_for('weekly.my_week') }}">Go to my week</a></p>
+    <p><a href="{{ url_for('weekly.my_team') }}">See my team</a></p>
   </section>
   {% if role == 'admin' %}
   <section class="card" aria-labelledby="h-admin">
