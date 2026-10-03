@@ -64,13 +64,21 @@ class PageTests(AppCase, unittest.TestCase):
              "/measures/targets?measure_code=PM-0002&ref_type=target&from_date=2026-04-01&to_date=2027-03-31", "/admin/", "/admin/audit", "/admin/measures", "/admin/measures/new", "/admin/measures/item?key=PM-0002",
              "/admin/measures/edit?key=PM-0002", "/admin/measures/history?key=PM-0002", "/admin/people",
              "/admin/people/new", "/admin/people/item?key=priya.shah@example.org", "/admin/periods",
-             "/admin/settings/edit?key=fy_start_month", "/admin/reference_values/new", "/no-such-page"]
+             "/admin/settings/edit?key=fy_start_month", "/admin/reference_values/new", "/exports/",
+             "/exports/scheduled", "/exports/links", "/admin/export_jobs/new", "/no-such-page"]
 
     def pages(self):
         out = [("/login", self.client.get("/login").get_data(as_text=True))]
         self.login()
         for p in self.PAGES:
             out.append((p, self.client.get(p).get_data(as_text=True)))
+        r = self.post("/exports/links", dict(name="Dashboard", dataset="measures"), csrf_from="/exports/links")
+        out.append(("/exports/links (made)", r.get_data(as_text=True)))
+        token = self.csrf("/exports/")
+        r = self.client.post("/exports/download", data={"csrf_token": token, "dataset": "quarter_pack", "quarter": "x"})
+        out.append(("/exports/download (errors)", r.get_data(as_text=True)))
+        url = re.search(r'value="http://pms\.test(/data/[^"]+)"', out[-2][1]).group(1)
+        out.append((url, self.app.test_client().get(url).get_data(as_text=True)))
         # A form with errors, so the error summary and field errors are checked too.
         token = self.csrf("/admin/measures/new")
         r = self.client.post("/admin/measures/new", data={"csrf_token": token, "unit": "nonsense"})

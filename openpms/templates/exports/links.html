@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "macros.html" import error_summary %}
+{% block title %}Data links{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('exports.index') }}">Exports</a></p>
+<h1>Data links for BI tools</h1>
+<p class="lead">A data link is a private web address that serves live, read-only CSV files. Power BI, Excel, Google Sheets, Looker Studio and most other tools can read it and refresh on a schedule, with no sign-in.</p>
+<p>Anyone who has the link can read the data, so treat it like a password. Turn a link off as soon as it's no longer needed. Data links never include wellbeing, review comments or the audit log.</p>
+
+{{ error_summary(errors) }}
+<h2>Make a new link</h2>
+<form method="post" class="form" novalidate>
+  {{ csrf_field() }}
+  <div class="field {{ 'field-error' if errors.name else '' }}">
+    <label for="f-name">Name</label>
+    <p class="hint" id="f-name-hint">What it's for, for example "Board dashboard in Power BI".</p>
+    {% if errors.name %}<p class="error-message" id="f-name-error"><span class="visually-hidden">Error:</span> {{ errors.name }}</p>{% endif %}
+    <input type="text" id="f-name" name="name" value="{{ form.get('name', '') }}" aria-describedby="f-name-hint{{ ' f-name-error' if errors.name else '' }}">
+  </div>
+  <fieldset class="field {{ 'field-error' if errors.dataset else '' }}">
+    <legend>What it shares</legend>
+    {% if errors.dataset %}<p class="error-message"><span class="visually-hidden">Error:</span> {{ errors.dataset }}</p>{% endif %}
+    {% for key, d in datasets %}
+    {% set id = 'f-dataset' if loop.first else 'f-dataset-' ~ key %}
+    <div class="choice">
+      <div class="checkbox">
+        <input type="radio" id="{{ id }}" name="dataset" value="{{ key }}" aria-describedby="{{ id }}-hint" {% if form.get('dataset', 'measures') == key %}checked{% endif %}>
+        <label for="{{ id }}">{{ d.title }}</label>
+      </div>
+      <p class="hint" id="{{ id }}-hint">{{ d.description }}</p>
+    </div>
+    {% endfor %}
+  </fieldset>
+  <button type="submit" class="button">Make link</button>
+</form>
+
+<h2>Links</h2>
+{% if links %}
+<div class="table-wrap">
+<table class="table">
+  <caption class="visually-hidden">Data links, active first</caption>
+  <thead><tr><th scope="col">Name</th><th scope="col">Shares</th><th scope="col">Made</th><th scope="col">Last used</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+  <tbody>{% for l in links %}
+    <tr>
+      <th scope="row">{{ l.name }}</th>
+      <td>{{ titles[l.dataset] }}</td>
+      <td>{{ l.created_at|fmt }} by {{ l.created_by }}</td>
+      <td>{% if l.last_used_at %}{{ l.last_used_at|fmt }} ({{ '{:,}'.format(l.use_count) }} requests){% else %}Never{% endif %}</td>
+      <td>{% if l.revoked_at %}Turned off {{ l.revoked_at|fmt }}{% else %}
+        <form method="post" action="{{ url_for('exports.revoke_link') }}">{{ csrf_field() }}<input type="hidden" name="id" value="{{ l.id }}">
+          <button type="submit" class="button button-secondary">Turn off<span class="visually-hidden">: {{ l.name }}</span></button></form>{% endif %}</td>
+    </tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>No data links yet.</p>
+{% endif %}
+{% endblock %}

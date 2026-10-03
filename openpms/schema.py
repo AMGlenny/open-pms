@@ -77,7 +77,7 @@ class ListDef:
     unique_key: bool = True
     key_required: bool = True
     restricted: bool = False  # extra permissions step, excluded from search/AI
-    generated: bool = False  # written only by flows, never by people
+    generated: bool = False  # written only by the app itself, never typed in by people
     exported: bool = True  # included in standard exports and AI snapshots
     # Row-level rules, enforced by the app.
     read_own_only: bool = False  # people can only read their own rows
@@ -220,7 +220,7 @@ LISTS = [
             Col("entered_by", "text", "Email of the updater.", required=True, indexed=True, ref="people.email"),
             Col("entered_date", "datetime", "When the value was first entered.", required=True),
             Col("submitted_date", "datetime", "When this version was submitted."),
-            Col("version_status", "choice", "draft, submitted, returned, approved or superseded. Only approved versions flow into reports.", required=True, choices=VERSION_STATUSES, default="draft", indexed=True),
+            Col("version_status", "choice", "draft, submitted, returned, approved or superseded. Only approved versions reach reports.", required=True, choices=VERSION_STATUSES, default="draft", indexed=True),
             Col("rag_status", "choice", "RAG worked out at approval using polarity and the period's target and tolerance.", choices=RAG_STATUSES),
         ],
     ),
@@ -356,7 +356,7 @@ LISTS = [
     ),
     ListDef(
         "settings", "shared",
-        "System settings that admins can change without editing flows.",
+        "System settings that admins can change in the app.",
         "setting_key", "Setting name. Unique.",
         [
             Col("setting_value", "text", "Value.", required=True),
@@ -365,8 +365,8 @@ LISTS = [
     ),
     ListDef(
         "audit_log", "shared",
-        "Every create, edit and status change: who, when, old and new value. Written only by flows.",
-        "audit_ref", "Reference. Flows use AUD- plus a GUID.",
+        "Every create, edit and status change: who, when, old and new value. Written only by the app.",
+        "audit_ref", "Reference: AUD- plus a random code.",
         [
             Col("list_name", "text", "List that changed.", required=True, indexed=True),
             Col("item_key", "text", "Key of the item that changed.", required=True, indexed=True),
@@ -381,7 +381,7 @@ LISTS = [
     ),
     ListDef(
         "export_jobs", "shared",
-        "Scheduled snapshot exports. Admins edit these; a flow runs them.",
+        "Scheduled snapshot exports. Admins edit these; the daily jobs run them.",
         "job_code", "Key, e.g. EXP-FULL-NIGHTLY. Unique.",
         [
             Col("job_name", "text", "Name.", required=True),
@@ -389,28 +389,27 @@ LISTS = [
             Col("format", "choice", "csv, xlsx or both.", required=True, choices=EXPORT_FORMATS, default="both"),
             Col("frequency", "choice", "daily, weekly, monthly or quarterly.", required=True, choices=EXPORT_FREQUENCIES),
             Col("run_day", "integer", "Weekly: 1 (Mon) to 7. Monthly or quarterly: day of month. Ignored for daily."),
-            Col("folder_path", "text", "Folder in the snapshots library.", required=True),
-            Col("keep_history", "bool", "Keep dated copies as well as /latest. Dated copies are always kept for now; automatic clean-up is a later feature.", default=True),
+            Col("folder_path", "text", "Snapshot folder name (letters, numbers, - and _).", required=True),
+            Col("keep_history", "bool", "Keep a dated copy of each run as well as latest.", default=True),
             Col("active", "bool", "Only active jobs run.", default=True, indexed=True),
-            Col("last_run_at", "datetime", "Written by the flow."),
-            Col("last_run_status", "text", "Written by the flow."),
+            Col("last_run_at", "datetime", "When it last ran. Written by the app."),
+            Col("last_run_status", "text", "What happened last time. Written by the app."),
         ],
     ),
     ListDef(
         "export_requests", "shared",
-        "Queue of exports. The apps and the scheduler add a row; the PMSExportRun flow picks it up, writes the files and fills in the link.",
+        "Log of exports: every download and every scheduled snapshot, who asked for it and what happened.",
         "request_ref", "Reference, e.g. REQ-20261001-0930-ab12. Unique.",
         [
             Col("dataset", "choice", "full_model, measures, weekly_work or quarter_pack.", required=True, choices=EXPORT_DATASETS),
             Col("job_code", "text", "The export_jobs row that asked for it. Blank for on-demand exports.", ref="export_jobs.job_code"),
             Col("quarter_label", "text", "For quarter packs: the financial quarter, e.g. 2026-27 Q2."),
-            Col("odata_filter", "note", "Optional filter applied to the dataset's main tables, e.g. financial_year eq '2026-27'."),
-            Col("filter_label", "text", "The filter in plain English, shown in the email and README."),
-            Col("folder_path", "text", "Folder in the snapshots library.", required=True),
+            Col("filter_label", "text", "The filter in plain English, as shown in export_info.txt."),
+            Col("folder_path", "text", "Snapshot folder name (letters, numbers, - and _). Downloads use 'download'.", required=True),
             Col("requested_by", "text", "Who asked for it. Blank for scheduled jobs.", indexed=True),
             Col("requested_at", "datetime", "When it was asked for.", required=True),
             Col("status", "choice", "queued, running, done or failed.", required=True, choices=EXPORT_STATUSES, default="queued", indexed=True),
-            Col("output_url", "note", "Link to the folder holding the files."),
+            Col("output_url", "note", "Where the files were written, or the downloaded file name."),
             Col("message", "note", "What happened, including any error."),
             Col("completed_at", "datetime", "When it finished."),
         ],
@@ -421,7 +420,7 @@ LISTS = [
     # ------------------------------------------------------------------
     ListDef(
         "rpt_values", "reporting",
-        "Flat, read-only reporting table: one row per approved measure per period with every lookup filled in. Rebuilt by flows; export straight from here.",
+        "Flat, read-only reporting table: one row per approved measure per period with every lookup filled in. Kept up to date by the app on every approval; export straight from here.",
         "submission_key", "measure_code|period_key. Unique.",
         [
             Col("measure_code", "text", "Measure.", required=True, indexed=True, ref="measures.measure_code"),
@@ -463,11 +462,6 @@ LISTS = [
         ],
         generated=True,
     ),
-]
-
-# Document library for scheduled snapshot files.
-LIBRARIES = [
-    ("snapshots", "Scheduled export files. /latest is overwritten each run; dated folders keep history."),
 ]
 
 LISTS_BY_NAME = {lst.name: lst for lst in LISTS}

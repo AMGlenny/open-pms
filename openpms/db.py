@@ -42,6 +42,19 @@ CREATE TABLE IF NOT EXISTS accounts (
     created_at TEXT NOT NULL,
     UNIQUE (org_id, email)
 );
+CREATE TABLE IF NOT EXISTS data_links (
+    id INTEGER PRIMARY KEY,
+    org_id INTEGER NOT NULL REFERENCES organisations(id),
+    name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+    dataset TEXT NOT NULL CHECK (dataset IN ('measures', 'full_model', 'weekly_work')),
+    token_hash TEXT NOT NULL UNIQUE,
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    revoked_by TEXT,
+    revoked_at TEXT,
+    last_used_at TEXT,
+    use_count INTEGER NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -213,7 +226,7 @@ class Repo:
 
     # -- writing ---------------------------------------------------------
     def _audit(self, table, key, action, field, old, new, who, when):
-        restricted = LISTS_BY_NAME[table].restricted
+        restricted = table in LISTS_BY_NAME and LISTS_BY_NAME[table].restricted
         if restricted and field is not None:
             old, new = ("(hidden)" if old is not None else None), ("(hidden)" if new is not None else None)
         self.conn.execute(
@@ -279,6 +292,27 @@ class _Transaction:
     def __exit__(self, exc_type, exc, tb):
         self.conn.execute("ROLLBACK" if exc_type else "COMMIT")
         return False
+
+
+def claim_today(conn, marker, today):
+    """True for the first caller on a given day, across every process."""
+    row = conn.execute("SELECT value FROM meta WHERE key = ?", (marker,)).fetchone()
+    if row and row["value"] >= today.isoformat():
+        return False  # the usual case: no write lock needed
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        row = conn.execute("SELECT value FROM meta WHERE key = ?", (marker,)).fetchone()
+        if row and row["value"] >= today.isoformat():
+            return False
+        conn.execute("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                     (marker, today.isoformat()))
+        return True
+    finally:
+        conn.execute("COMMIT")
+
+
+def org_slug(conn, org_id):
+    return conn.execute("SELECT slug FROM organisations WHERE id = ?", (org_id,)).fetchone()[0]
 
 
 def create_org(conn, name, slug):

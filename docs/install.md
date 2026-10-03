@@ -43,7 +43,7 @@ pms.example.org {
 }
 ```
 
-Once HTTPS works, set `OPENPMS_SECURE_COOKIES=1` (in `docker-compose.yml` or your environment) and restart. Browsers will then only send the sign-in cookie over HTTPS.
+Once HTTPS works, set `OPENPMS_SECURE_COOKIES=1` and `OPENPMS_BEHIND_PROXY=1` (in `docker-compose.yml` or your environment) and restart. Browsers will then only send the sign-in cookie over HTTPS, and links Open PMS makes (such as data links) will use your public `https://` address.
 
 ## Settings (environment variables)
 
@@ -54,6 +54,8 @@ Once HTTPS works, set `OPENPMS_SECURE_COOKIES=1` (in `docker-compose.yml` or you
 | `OPENPMS_SECRET_KEY` | generated and saved in the instance folder | Signs sessions. Set it yourself if you run several servers. |
 | `OPENPMS_SECURE_COOKIES` | `0` | Set to `1` once served over HTTPS |
 | `OPENPMS_SETUP_CODE` | random, printed in the log | Choose your own first-run setup code |
+| `OPENPMS_BEHIND_PROXY` | `0` | Set to `1` when a reverse proxy (Caddy, nginx) sits in front. Only do this if Open PMS can't be reached except through the proxy. |
+| `OPENPMS_SNAPSHOT_DIR` | `<instance>/snapshots` | Where scheduled exports are written |
 | `OPENPMS_SMTP_HOST` | not set | Mail server for notifications. Without it, emails are only logged and everything else works. |
 | `OPENPMS_SMTP_PORT`, `OPENPMS_SMTP_USER`, `OPENPMS_SMTP_PASSWORD` | 587, none, none | Mail server sign-in |
 | `OPENPMS_SMTP_FROM` | `openpms@localhost` | The From address on emails |
@@ -63,7 +65,12 @@ Everything else, such as your organisation name, financial year start and wellbe
 
 ## Daily jobs
 
-Each morning, Open PMS creates an empty value for every measure whose period has just ended, and on Mondays it emails reminders. It does this by itself the first time anyone uses it each day, so you don't need cron.
+Each day, Open PMS:
+- creates an empty value for every measure whose period has just ended;
+- on Mondays, emails reminders;
+- runs any scheduled exports that are due (see the [exports guide](exports_guide.md)), in the background.
+
+It does this by itself the first time anyone uses it each day, so you don't need cron.
 
 If you'd rather run it on a schedule, use `openpms run-jobs` (it only runs once a day, however often it's called).
 
@@ -76,6 +83,8 @@ sqlite3 /var/lib/openpms/openpms.db ".backup '/backups/openpms-$(date +%F).db'"
 ```
 
 With Docker, run the same command against the volume, or stop the container and copy the volume.
+
+The `snapshots` folder doesn't need backing up: scheduled exports rebuild it.
 
 - **Schedule it daily** and keep copies somewhere else, such as another machine or cloud storage.
 - **Test a restore now and then:** copy a backup to a test machine and start Open PMS against it.

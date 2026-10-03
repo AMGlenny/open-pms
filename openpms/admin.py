@@ -50,7 +50,8 @@ def _fields(table, conf, row=None, creating=False):
             continue
         fields.append(dict(col=col, name=col.name, label=forms.label(col.name), hint=col.description,
                            value=None if row is None else row.get(col.name),
-                           readonly=is_key and not creating, options=_options(col)))
+                           readonly=(is_key and not creating) or col.name in conf.get("app_fields", ()),
+                           options=_options(col)))
     return fields
 
 
@@ -58,7 +59,7 @@ def _read_form(table, conf, creating, existing=None):
     lst = LISTS_BY_NAME[table]
     values, errors = {}, {}
     for i, col in enumerate(lst.all_columns):
-        if i == 0:
+        if i == 0 or col.name in conf.get("app_fields", ()):
             continue
         v, err = forms.parse_field(col, request.form.get(col.name))
         values[col.name] = v

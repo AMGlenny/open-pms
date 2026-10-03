@@ -114,15 +114,22 @@ def generate_periods(fy):
 @click.option("--force", is_flag=True, help="Run even if today's jobs have already run.")
 @with_appcontext
 def run_jobs(force):
-    """Daily jobs: expected submissions, and reminders on Mondays. The app
-    also runs these by itself on the first request each day."""
-    from . import measures_service
+    """Daily jobs: expected submissions, reminders on Mondays and scheduled
+    exports. The app also runs these by itself on the first request each day."""
+    from datetime import date
+
+    from . import exports, measures_service
     conn = _conn()
     repo = db.Repo(conn, _org(conn))
     if force:
-        conn.execute("DELETE FROM meta WHERE key = ?", (f"daily_jobs_{repo.org_id}",))
+        conn.execute("DELETE FROM meta WHERE key IN (?, ?)", (f"daily_jobs_{repo.org_id}", f"snapshots_{repo.org_id}"))
     result = measures_service.run_daily(repo)
-    click.echo("Already ran today." if result is None else f"Done: {result}")
+    click.echo("Values and reminders: already ran today." if result is None else f"Values and reminders: {result}")
+    if db.claim_today(conn, f"snapshots_{repo.org_id}", date.today()):
+        ran = exports.run_due_jobs(repo, current_app.config["SNAPSHOT_DIR"], db.org_slug(conn, repo.org_id))
+        click.echo(f"Scheduled exports: {ran or 'none due'}")
+    else:
+        click.echo("Scheduled exports: already ran today.")
 
 
 COMMANDS = [init_db, create_admin, load_demo, generate_periods, run_jobs]

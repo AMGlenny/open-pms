@@ -19,7 +19,8 @@ def _demo_db():
     global _TEMPLATE
     if _TEMPLATE is None:
         tmp = Path(tempfile.mkdtemp())
-        app = create_app({"TESTING": True, "DATABASE": str(tmp / "demo.db"), "SECRET_KEY": "test"})
+        app = create_app({"TESTING": True, "DATABASE": str(tmp / "demo.db"), "SECRET_KEY": "test",
+                          "SNAPSHOT_DIR": str(tmp / "snapshots")})
         result = app.test_cli_runner().invoke(args=["load-demo", "--password", PASSWORD])
         assert result.exit_code == 0, result.output
         _TEMPLATE = tmp / "demo.db"
@@ -40,7 +41,8 @@ class AppCase:
             src.close()
             dst.close()
         self.app = create_app({"TESTING": True, "DATABASE": str(path), "SECRET_KEY": "test",
-                               "SERVER_NAME": "pms.test", "DISABLE_DAILY_JOBS": True})
+                               "SERVER_NAME": "pms.test", "DISABLE_DAILY_JOBS": True,
+                               "SNAPSHOT_DIR": str(self.tmp / "snapshots"), "JOBS_IN_FOREGROUND": True})
         self.client = self.app.test_client()
 
     def tearDown(self):

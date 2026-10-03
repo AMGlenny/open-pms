@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Live, read-only files. Add the file name to the end of this page's address.</p>
+<ul>{% for n in names %}<li><a href="{{ n }}">{{ n }}</a></li>{% endfor %}</ul>
+{% endblock %}

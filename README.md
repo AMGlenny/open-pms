@@ -4,11 +4,11 @@ Free, open-source performance management for public bodies, charities and teams 
 
 - **Measures** with targets, RAG and a proper approval trail: updaters enter values, approvers approve or return them with a comment, and every change is recorded.
 - **Weekly updates:** a quick daily or weekly log of tasks, problems, successes and workload. Quarterly reports can then be drafted from what was logged, instead of a scramble every quarter.
-- **Tidy exports** that work straight away in Excel, LibreOffice, Power BI, Metabase or any AI tool.
+- **Tidy exports** that work straight away in Excel, LibreOffice, Power BI, Metabase or any AI tool, with a data dictionary, a README for AI, scheduled snapshots and live data links.
 
 It runs anywhere: one small Docker container, or plain Python. There's no licence fee and no cloud account to sign up for. Your data stays on your own server.
 
-> **Status: early.** Phases 1 to 3 are done: the foundation, weekly updates and the measures workflow. Exports are next. See the roadmap below.
+> **Status: early.** Phases 1 to 4 are done: the foundation, weekly updates, the measures workflow and exports. Hardening is next. See the roadmap below.
 
 ## Principles
 
@@ -57,7 +57,8 @@ Then open http://localhost:8000/setup. Enter the setup code from the log, name y
 | `openpms/weekly.py` | My week, tasks, problems and My team |
 | `openpms/measures.py`, `openpms/measures_service.py` | Measures pages, and the bridge that runs the tested workflow rules against the database in one transaction |
 | `openpms/mail.py` | Optional email notifications |
-| `tests/` | 101 tests: data rules, security, admin, periods, workflow, weekly pages, wellbeing privacy, the measures journey end to end, and accessibility |
+| `openpms/exports.py`, `openpms/exports_web.py` | Export datasets, CSV and Excel writers, the README for AI and quarterly prompt, scheduled snapshots and data links |
+| `tests/` | 127 tests: data rules, security, admin, periods, workflow, weekly pages, wellbeing privacy, the measures journey end to end, exports, and accessibility |
 
 The stack is Python, Flask and SQLite (PostgreSQL support is planned). It's deliberately small, so it's easy to look after.
 
@@ -68,8 +69,8 @@ The stack is Python, Flask and SQLite (PostgreSQL support is planned). It's deli
 | 1. Foundation | Data model, sign-in with invites, roles, audit trail, admin screens, first-run setup, Docker | **Done** |
 | 2. Weekly updates | Successes, communication, workload, tasks and problems that carry over each week, the team view, and private wellbeing (only line managers see individual answers) | **Done**: [guide](docs/weekly_guide.md) |
 | 3. Measures | Entering values, review, return with comments, versions, reopening, RAG, reminders, setting targets across a range, email notifications | **Done**: [guide](docs/measures_guide.md) |
-| 4. Exports | CSV and Excel with a data dictionary, a README for AI tools, scheduled snapshots, the quarterly report pack and prompt, and a read-only data link for BI tools | Next |
-| 5. Hardening | Google and Microsoft sign-in, PostgreSQL, tests at volume, a backup tool, accessibility review, and support for hosting several organisations on one installation | |
+| 4. Exports | CSV and Excel with a data dictionary, a README for AI tools, scheduled snapshots, the quarterly report pack and prompt, and a read-only data link for BI tools | **Done**: [guide](docs/exports_guide.md) |
+| 5. Hardening | Google and Microsoft sign-in, PostgreSQL, tests at volume, a backup tool, accessibility review, and support for hosting several organisations on one installation | Next |
 
 ## Accessibility
 

@@ -59,3 +59,11 @@ To stop using a measure, set its status to **retired**. It disappears from day-t
 ## 7. Audit log
 
 **Admin > Audit log** shows every change across the system. Individual wellbeing answers are never shown in it: wellbeing changes appear as "(hidden)".
+
+## 8. Exports
+
+Everyone can download exports from **Exports**. As an admin you can also:
+- set up **scheduled exports**, which write fresh files to a folder on the server every day, week, month or quarter. Three example jobs come with the demo data;
+- make **data links**, so Power BI, Excel or Google Sheets can read live data and refresh by themselves.
+
+See the [exports guide](exports_guide.md).

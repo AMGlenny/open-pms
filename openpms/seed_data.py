@@ -555,9 +555,9 @@ def build():
     data.update(_weekly_work(rng))
     data["export_requests"] = [
         dict(request_ref="REQ-20260929-0600-full", dataset="full_model", job_code="EXP-FULL-NIGHTLY", quarter_label=None,
-             odata_filter=None, filter_label="Everything", folder_path="full_model",
+             filter_label="Everything", folder_path="full_model",
              requested_by=None, requested_at=_dt(AS_OF - timedelta(days=1), 6), status="done",
-             output_url="/exports/full_model/latest",
+             output_url="full_model/latest",
              message="14 tables written.", completed_at=_dt(AS_OF - timedelta(days=1), 6, 9)),
     ]
     data["export_jobs"] = [

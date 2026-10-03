@@ -36,9 +36,15 @@ def create_app(config=None):
         SESSION_COOKIE_SECURE=os.environ.get("OPENPMS_SECURE_COOKIES", "0") == "1",
         PERMANENT_SESSION_LIFETIME=12 * 3600,
         MAX_CONTENT_LENGTH=2 * 1024 * 1024,
+        SNAPSHOT_DIR=os.environ.get("OPENPMS_SNAPSHOT_DIR", str(Path(app.instance_path) / "snapshots")),
     )
     if config:
         app.config.update(config)
+    if os.environ.get("OPENPMS_BEHIND_PROXY", "0") == "1":
+        # Trust one reverse proxy (Caddy, nginx) for the https scheme and host,
+        # so links (such as data links) use the public address.
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     if not app.config["SECRET_KEY"]:
         app.config["SECRET_KEY"] = _secret_key(app.instance_path)
 
@@ -87,12 +93,14 @@ def create_app(config=None):
     app.jinja_env.filters["fmt"] = fmt
     app.jinja_env.globals["version"] = __version__
 
-    from . import admin, auth, measures, security, web, weekly
+    from . import admin, auth, exports_web, measures, security, web, weekly
     security.init_app(app)
     auth.init_app(app)
     app.register_blueprint(web.bp)
     app.register_blueprint(weekly.bp)
     app.register_blueprint(measures.bp)
+    app.register_blueprint(exports_web.bp)
+    app.register_blueprint(exports_web.data_bp)
 
     @app.before_request
     def daily_jobs():
@@ -100,9 +108,11 @@ def create_app(config=None):
         on the first signed-in request, so no cron job is needed."""
         if g.get("repo") is None or app.config.get("DISABLE_DAILY_JOBS"):
             return
-        from . import measures_service
+        from . import exports_web, measures_service
         try:
             measures_service.run_daily(g.repo)
+            if db.claim_today(g.conn, f"snapshots_{g.repo.org_id}", date.today()):
+                exports_web.start_due_jobs(app, g.repo.org_id)
         except Exception:  # never block someone's page because a background job failed
             app.logger.exception("Daily jobs failed")
     app.register_blueprint(auth.bp)
