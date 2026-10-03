@@ -6,9 +6,9 @@ Free, open-source performance management for public bodies, charities and teams 
 - **Weekly updates:** a quick daily or weekly log of tasks, problems, successes and workload. Quarterly reports can then be drafted from what was logged, instead of a scramble every quarter.
 - **Tidy exports** that work straight away in Excel, LibreOffice, Power BI, Metabase or any AI tool, with a data dictionary, a README for AI, scheduled snapshots and live data links.
 
-It runs anywhere: one small Docker container, or plain Python. There's no licence fee and no cloud account to sign up for. Your data stays on your own server.
+It runs anywhere: one small Docker container, or plain Python, with SQLite or PostgreSQL. People sign in with a password, or with their Google or Microsoft account. There's no licence fee and no cloud account to sign up for. Your data stays on your own server.
 
-> **Status: early.** Phases 1 to 4 are done: the foundation, weekly updates, the measures workflow and exports. Hardening is next. See the roadmap below.
+> **Status: ready to try.** All five phases are done: the foundation, weekly updates, the measures workflow, exports and hardening. It hasn't had an independent security or accessibility review yet, so try it with test data first.
 
 ## Principles
 
@@ -43,24 +43,25 @@ docker compose logs openpms | grep "setup code"
 
 Then open http://localhost:8000/setup. Enter the setup code from the log, name your organisation, choose when your financial year starts, and create your admin account. After that, add teams, people and measures under **Admin**.
 
-[docs/install.md](docs/install.md) covers HTTPS, backups, upgrades and running without Docker. [docs/admin_guide.md](docs/admin_guide.md) covers first steps as an admin.
+[docs/install.md](docs/install.md) covers HTTPS, single sign-on, PostgreSQL, backups, upgrades, hosting several organisations and running without Docker. [docs/admin_guide.md](docs/admin_guide.md) covers first steps as an admin.
 
 ## How it's built
 
 | Part | What it is |
 |---|---|
 | `openpms/schema.py` | The data model: every table, column and allowed value, defined once. Tables, admin forms, checks and exports are all built from it. |
-| `openpms/db.py` | The only way data is read or written. It scopes everything to one organisation, audits every change, and has no delete. |
+| `openpms/db.py` | The only way data is read or written, on SQLite or PostgreSQL. It scopes everything to one organisation, audits every change, and has no delete. |
 | `openpms/rules.py`, `openpms/workflow.py` | The business rules: RAG, validation, the approval workflow, weekly carry-over and wellbeing privacy |
 | `openpms/periods.py` | Days, weeks, fortnights, months, quarters, financial years (any start month), calendar years, academic years and terms |
 | `openpms/admin.py`, `openpms/templates/` | Plain, accessible web pages. There's no JavaScript framework. |
 | `openpms/weekly.py` | My week, tasks, problems and My team |
 | `openpms/measures.py`, `openpms/measures_service.py` | Measures pages, and the bridge that runs the tested workflow rules against the database in one transaction |
 | `openpms/mail.py` | Optional email notifications |
+| `openpms/sso.py` | Optional Google and Microsoft sign-in |
 | `openpms/exports.py`, `openpms/exports_web.py` | Export datasets, CSV and Excel writers, the README for AI and quarterly prompt, scheduled snapshots and data links |
-| `tests/` | 127 tests: data rules, security, admin, periods, workflow, weekly pages, wellbeing privacy, the measures journey end to end, exports, and accessibility |
+| `tests/` | 147 tests: data rules, security, admin, periods, workflow, weekly pages, wellbeing privacy, the measures journey end to end, exports, single sign-on, keeping organisations apart, backups and accessibility. All run on SQLite and PostgreSQL. Scale tests (360 measures, 120 people) run in CI: see [performance.md](docs/performance.md). |
 
-The stack is Python, Flask and SQLite (PostgreSQL support is planned). It's deliberately small, so it's easy to look after.
+The stack is Python, Flask, and SQLite or PostgreSQL. It's deliberately small, so it's easy to look after.
 
 ## Roadmap
 
@@ -70,7 +71,7 @@ The stack is Python, Flask and SQLite (PostgreSQL support is planned). It's deli
 | 2. Weekly updates | Successes, communication, workload, tasks and problems that carry over each week, the team view, and private wellbeing (only line managers see individual answers) | **Done**: [guide](docs/weekly_guide.md) |
 | 3. Measures | Entering values, review, return with comments, versions, reopening, RAG, reminders, setting targets across a range, email notifications | **Done**: [guide](docs/measures_guide.md) |
 | 4. Exports | CSV and Excel with a data dictionary, a README for AI tools, scheduled snapshots, the quarterly report pack and prompt, and a read-only data link for BI tools | **Done**: [guide](docs/exports_guide.md) |
-| 5. Hardening | Google and Microsoft sign-in, PostgreSQL, tests at volume, a backup tool, accessibility review, and support for hosting several organisations on one installation | Next |
+| 5. Hardening | Google and Microsoft sign-in, PostgreSQL, tests at volume, a backup tool, an accessibility checklist, and hosting several organisations on one installation | **Done**: [install](docs/install.md), [performance](docs/performance.md), [accessibility](docs/accessibility.md) |
 
 ## Accessibility
 
@@ -80,7 +81,7 @@ Open PMS aims to meet WCAG 2.2 AA. The tests check every page for:
 - unique IDs and table headers
 - colour contrast and visible focus
 
-Keyboard, screen reader, zoom and phone checks still need doing by hand before each release.
+Keyboard, screen reader, zoom and phone checks still need doing by hand before each release: [docs/accessibility.md](docs/accessibility.md) has the checklist.
 
 ## Licence
 

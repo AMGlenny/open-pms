@@ -20,6 +20,37 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: pip install -e .
       - run: python -m unittest discover -s tests -t . -v
+      - name: Scale tests (360 measures, 120 people)
+        if: matrix.python == '3.12'
+        env:
+          OPENPMS_SCALE_TESTS: "1"
+        run: python -m unittest tests.test_scale -v
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: openpms
+          POSTGRES_PASSWORD: openpms
+          POSTGRES_DB: openpms
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U openpms" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      OPENPMS_TEST_POSTGRES: postgresql://openpms:openpms@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[postgres]"
+      - run: python -m unittest discover -s tests -t . -v
+      - name: Scale tests on PostgreSQL
+        env:
+          OPENPMS_SCALE_TESTS: "1"
+        run: python -m unittest tests.test_scale -v
 
   docker:
     runs-on: ubuntu-latest
@@ -33,3 +64,11 @@ jobs:
           for i in $(seq 1 30); do curl -fsS http://localhost:8000/healthz && break; sleep 1; done
           curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:8000/setup
           docker logs pms 2>&1 | grep -q "setup code"
+      - name: Start the PostgreSQL version and check it answers
+        env:
+          POSTGRES_PASSWORD: ci-only-password
+        run: |
+          docker compose -f docker-compose.postgres.yml up -d --build
+          for i in $(seq 1 60); do curl -fsS http://localhost:8001/healthz && break; sleep 1; done
+          curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:8001/setup
+          docker compose -f docker-compose.postgres.yml logs openpms 2>&1 | grep -q "setup code"

@@ -110,11 +110,11 @@ def list_rows(table):
     page = max(1, request.args.get("page", 1, type=int))
     where, params = [], []
     if q:
-        where.append("(" + " OR ".join(f"{c} LIKE ?" for c in conf["search"]) + ")")
-        params += [f"%{q}%"] * len(conf["search"])
+        where.append("(" + " OR ".join(f"lower({c}) LIKE ?" for c in conf["search"]) + ")")
+        params += [f"%{q.lower()}%"] * len(conf["search"])
     if conf.get("inactive") and not show_all:
         col, val = conf["inactive"]
-        where.append(f"{col} IS NOT ?")
+        where.append(f"({col} IS NULL OR {col} <> ?)")
         params.append(1 if val is True else 0 if val is False else val)
     clause = " AND ".join(where)
     total = g.repo.count(table, clause, params)
@@ -219,7 +219,7 @@ def audit():
     q = request.args.get("q", "").strip()
     where, params = "", ()
     if q:
-        where, params = "item_key LIKE ? OR changed_by LIKE ? OR list_name LIKE ?", (f"%{q}%",) * 3
+        where, params = "lower(item_key) LIKE ? OR lower(changed_by) LIKE ? OR list_name LIKE ?", (f"%{q.lower()}%",) * 3
     rows = g.repo.find("audit_log", where, params, order="changed_at DESC, id DESC", limit=200)
     return render_template("admin/audit.html", rows=rows, q=q)
 

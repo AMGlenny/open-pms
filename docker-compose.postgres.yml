@@ -1,0 +1,44 @@
+# Open PMS with PostgreSQL. Use this for bigger installations, or if you
+# already run PostgreSQL. For most organisations the plain docker-compose.yml
+# (SQLite) is simpler and plenty fast.
+#
+#   export POSTGRES_PASSWORD="a long random password"
+#   docker compose -f docker-compose.postgres.yml up -d
+#   docker compose -f docker-compose.postgres.yml logs openpms | grep "setup code"
+#   then open http://localhost:8001/setup
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: openpms
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD first}
+      POSTGRES_DB: openpms
+    volumes:
+      - openpms-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "openpms"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  openpms:
+    build: .
+    image: openpms:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+    volumes:
+      - openpms-data:/data   # secret key, setup code and scheduled exports
+    environment:
+      OPENPMS_DATABASE: postgresql://openpms:${POSTGRES_PASSWORD}@db:5432/openpms
+      # Set to "1" once you serve Open PMS over HTTPS (see docs/install.md).
+      OPENPMS_SECURE_COOKIES: "0"
+      # Set to "1" if a reverse proxy such as Caddy or nginx sits in front.
+      OPENPMS_BEHIND_PROXY: "0"
+    restart: unless-stopped
+
+volumes:
+  openpms-pg:
+  openpms-data:

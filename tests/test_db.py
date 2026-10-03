@@ -1,16 +1,16 @@
 """The database enforces the data rules itself, audits every change and
 keeps organisations apart."""
-import sqlite3
 import unittest
 from datetime import date
 
 from openpms import db
 from openpms.schema import LISTS
 
+from .helpers import empty_connection
+
 
 def fresh():
-    conn = db.connect(":memory:")
-    db.init(conn)
+    conn, _ = empty_connection()
     return conn, db.Repo(conn, db.create_org(conn, "Org A", "a"))
 
 
@@ -18,16 +18,25 @@ class ConstraintTests(unittest.TestCase):
     def test_every_table_created_with_key_and_org(self):
         conn, _ = fresh()
         for lst in LISTS:
-            cols = {r["name"] for r in conn.execute(f"PRAGMA table_info({lst.name})")}
+            cur = conn.execute(f"SELECT * FROM {lst.name} LIMIT 0")
+            cols = {d[0] for d in cur.description}
             self.assertTrue({"id", "org_id", lst.key, "created_at", "modified_by"} <= cols, lst.name)
+
+    def test_upgrade_adds_new_columns(self):
+        conn, repo = fresh()
+        conn.execute("ALTER TABLE measures DROP COLUMN retired_reason")  # as if made by an older version
+        db.init(conn)
+        cols = {d[0] for d in conn.execute("SELECT * FROM measures LIMIT 0").description}
+        self.assertIn("retired_reason", cols)
+        self.assertEqual(db.add_missing_columns(conn), [], "nothing to add the second time")
 
     def test_bad_values_rejected_by_database(self):
         conn, repo = fresh()
         base = {"group_key": "G1", "group_name": "One", "group_type": "theme", "active": True}
         for bad in ({"group_type": "nonsense"}, {"group_name": "   "}, {"group_name": None}):
-            with self.assertRaises(sqlite3.IntegrityError, msg=bad):
+            with self.assertRaises(db.IntegrityError, msg=bad):
                 repo.insert("groups", dict(base, **bad), "t@x")
-        with self.assertRaises(sqlite3.IntegrityError):
+        with self.assertRaises(db.IntegrityError):
             conn.execute("INSERT INTO periods (org_id, period_key, period_type, period_label, start_date, end_date, "
                          "created_at, created_by, modified_at, modified_by) VALUES (1, 'P', 'daily', 'x', "
                          "'30/09/2026', '2026-09-30', 'x', 'x', 'x', 'x')")
@@ -36,7 +45,7 @@ class ConstraintTests(unittest.TestCase):
         conn, repo = fresh()
         row = {"group_key": "G1", "group_name": "One", "group_type": "theme", "active": True}
         repo.insert("groups", row, "t@x")
-        with self.assertRaises(sqlite3.IntegrityError):
+        with self.assertRaises(db.IntegrityError):
             repo.insert("groups", row, "t@x")
         other = db.Repo(conn, db.create_org(conn, "Org B", "b"))
         other.insert("groups", row, "t@x")  # same key, different organisation: fine

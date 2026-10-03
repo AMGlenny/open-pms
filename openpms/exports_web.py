@@ -146,10 +146,11 @@ def links():
             token = secrets.token_urlsafe(32)
             now = db.iso(db.utcnow())
             with g.repo.transaction():
-                cur = g.conn.execute(
+                link_id = g.conn.execute(
                     "INSERT INTO data_links (org_id, name, dataset, token_hash, created_by, created_at)"
-                    " VALUES (?, ?, ?, ?, ?, ?)", (g.repo.org_id, name, dataset, _hash(token), g.person["email"], now))
-                g.repo._audit("data_links", f"LINK-{cur.lastrowid}", "create", None, None, None, g.person["email"],
+                    " VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
+                    (g.repo.org_id, name, dataset, _hash(token), g.person["email"], now)).fetchone()[0]
+                g.repo._audit("data_links", f"LINK-{link_id}", "create", None, None, None, g.person["email"],
                               db.utcnow())
             url = url_for("data.listing", token=token, _external=True)
             return render_template("exports/link_created.html", name=name, dataset=dataset, url=url,
