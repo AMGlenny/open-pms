@@ -1,12 +1,14 @@
-"""Sign-in with email and password.
+"""Sign-in with email and password, and (see sso.py) Google or Microsoft.
 
 - Admins invite people; an invite link lets them set a password. Links
   expire after 7 days and work once. Only a hash of each link is stored.
 - Ten failed sign-ins lock the account for 15 minutes.
 - Passwords are at least 12 characters and are stored as salted hashes.
-
-Google and Microsoft sign-in can be added alongside this later.
+- When one installation hosts several organisations, people also enter
+  their organisation's code (or use their organisation's sign-in link,
+  /login?org=code).
 """
+import os
 import functools
 import hashlib
 import secrets
@@ -113,36 +115,70 @@ def _safe_next(target):
     return target if target and target.startswith("/") and not target.startswith("//") else url_for("web.home")
 
 
+def multi_org(conn):
+    return conn.execute("SELECT COUNT(*) FROM organisations").fetchone()[0] > 1
+
+
+def password_sign_in_enabled():
+    return os.environ.get("OPENPMS_PASSWORD_SIGN_IN", "1") != "0"
+
+
+def find_org(conn, code):
+    """The organisation for a sign-in: the only one, or the one whose code
+    was entered. None if a code is needed but missing or wrong."""
+    if not multi_org(conn):
+        row = conn.execute("SELECT id FROM organisations ORDER BY id LIMIT 1").fetchone()
+    else:
+        row = conn.execute("SELECT id FROM organisations WHERE slug = ?", ((code or "").strip().lower(),)).fetchone()
+    return row["id"] if row else None
+
+
+def start_session(acc):
+    g.conn.execute("UPDATE accounts SET failed_logins = 0, locked_until = NULL, last_login_at = ? WHERE id = ?",
+                   (db.iso(db.utcnow()), acc["id"]))
+    session.clear()
+    session.permanent = True
+    session["aid"], session["oid"] = acc["id"], acc["org_id"]
+
+
+def login_page(errors=None, email="", status=200):
+    from . import sso
+    return render_template("auth/login.html", errors=errors or {}, email=email, multi_org=multi_org(g.conn),
+                           org_code=(request.values.get("org") or "").strip().lower(), providers=sso.enabled(),
+                           passwords=password_sign_in_enabled(), next=request.args.get("next", "")), status
+
+
 @bp.route("/login", methods=["GET", "POST"])
 def login():
+    if request.method == "GET":
+        return login_page()
+    if not password_sign_in_enabled():
+        abort(404)
     errors = {}
-    email = ""
-    if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
-        rows = g.conn.execute("SELECT * FROM accounts WHERE email = ?", (email,)).fetchall()
-        acc = rows[0] if len(rows) == 1 else None
-        now = db.utcnow()
-        if acc and acc["locked_until"] and acc["locked_until"] > db.iso(now):
-            errors["email"] = "Too many failed attempts. Try again in 15 minutes, or ask an admin to reset your password."
-        else:
-            ok = check_password_hash(acc["password_hash"], password) if acc and acc["password_hash"] else \
-                check_password_hash(_DUMMY_HASH, password) and False
-            person = db.Repo(g.conn, acc["org_id"]).get("people", email) if acc else None
-            if ok and person and person["active"]:
-                g.conn.execute("UPDATE accounts SET failed_logins = 0, locked_until = NULL, last_login_at = ? "
-                               "WHERE id = ?", (db.iso(now), acc["id"]))
-                session.clear()
-                session.permanent = True
-                session["aid"], session["oid"] = acc["id"], acc["org_id"]
-                return redirect(_safe_next(request.args.get("next")))
-            if acc:
-                failed = acc["failed_logins"] + 1
-                locked = db.iso(now + timedelta(minutes=LOCK_MINUTES)) if failed >= MAX_FAILED else None
-                g.conn.execute("UPDATE accounts SET failed_logins = ?, locked_until = ? WHERE id = ?",
-                               (0 if locked else failed, locked, acc["id"]))
-            errors["email"] = "The email or password is wrong."
-    return render_template("auth/login.html", errors=errors, email=email), (400 if errors else 200)
+    email = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "")
+    org_id = find_org(g.conn, request.form.get("org"))
+    acc = None
+    if org_id:
+        acc = g.conn.execute("SELECT * FROM accounts WHERE org_id = ? AND email = ?", (org_id, email)).fetchone()
+    now = db.utcnow()
+    if acc and acc["locked_until"] and acc["locked_until"] > db.iso(now):
+        errors["email"] = "Too many failed attempts. Try again in 15 minutes, or ask an admin to reset your password."
+    else:
+        ok = check_password_hash(acc["password_hash"], password) if acc and acc["password_hash"] else \
+            check_password_hash(_DUMMY_HASH, password) and False
+        person = db.Repo(g.conn, acc["org_id"]).get("people", email) if acc else None
+        if ok and person and person["active"]:
+            start_session(acc)
+            return redirect(_safe_next(request.args.get("next")))
+        if acc:
+            failed = acc["failed_logins"] + 1
+            locked = db.iso(now + timedelta(minutes=LOCK_MINUTES)) if failed >= MAX_FAILED else None
+            g.conn.execute("UPDATE accounts SET failed_logins = ?, locked_until = ? WHERE id = ?",
+                           (0 if locked else failed, locked, acc["id"]))
+        errors["email"] = ("The organisation code, email or password is wrong." if multi_org(g.conn)
+                           else "The email or password is wrong.")
+    return login_page(errors, email, 400)
 
 
 @bp.route("/logout", methods=["POST"])

@@ -75,7 +75,7 @@ def setup():
             errors["confirm"] = "The passwords don't match."
         if not errors:
             email = values["email"].lower()
-            g.conn.execute("BEGIN IMMEDIATE")
+            g.conn.begin()
             if not _needs_setup():  # someone else finished setup a moment ago
                 g.conn.execute("ROLLBACK")
                 abort(404)

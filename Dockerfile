@@ -10,7 +10,7 @@ RUN useradd --create-home --uid 10001 openpms && mkdir /data && chown openpms /d
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE ./
 COPY openpms ./openpms
-RUN pip install --no-cache-dir ".[server]"
+RUN pip install --no-cache-dir ".[server,postgres]"
 
 USER openpms
 VOLUME ["/data"]

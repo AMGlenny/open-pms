@@ -93,7 +93,7 @@ def create_app(config=None):
     app.jinja_env.filters["fmt"] = fmt
     app.jinja_env.globals["version"] = __version__
 
-    from . import admin, auth, exports_web, measures, security, web, weekly
+    from . import admin, auth, exports_web, measures, security, sso, web, weekly
     security.init_app(app)
     auth.init_app(app)
     app.register_blueprint(web.bp)
@@ -116,6 +116,8 @@ def create_app(config=None):
         except Exception:  # never block someone's page because a background job failed
             app.logger.exception("Daily jobs failed")
     app.register_blueprint(auth.bp)
+    app.register_blueprint(sso.bp)
+    sso.providers()  # fails at start-up, not at sign-in, if single sign-on is set up wrongly
     app.register_blueprint(admin.bp)
 
     for code in (400, 403, 404):

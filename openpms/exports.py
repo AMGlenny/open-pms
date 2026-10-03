@@ -396,13 +396,13 @@ def to_xlsx(exp):
                 elif t == "date" and isinstance(v, date):
                     cell = WriteOnlyCell(ws, value=v)
                     cell.number_format = "yyyy-mm-dd"
-                elif t == "number":
-                    cell = WriteOnlyCell(ws, value=v)
-                elif t == "bool":
-                    cell = WriteOnlyCell(ws, value=bool(v))
+                elif t == "number" or t == "bool":
+                    cell = bool(v) if t == "bool" else v  # plain values are much faster than cell objects
                 else:
-                    cell = WriteOnlyCell(ws, value=str(v))
-                    cell.data_type = "s"
+                    cell = str(v)
+                    if cell.startswith("="):  # the only text openpyxl would treat as a formula
+                        cell = WriteOnlyCell(ws, value=cell)
+                        cell.data_type = "s"
                 out.append(cell)
             ws.append(out)
         ws.auto_filter.ref = f"A1:{get_column_letter(len(columns))}{len(rows) + 1}"

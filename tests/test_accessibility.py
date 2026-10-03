@@ -141,6 +141,12 @@ class ColourTests(unittest.TestCase):
     def test_targets_at_least_44px(self):
         self.assertIn("min-height: 2.75rem", CSS)
 
+    def test_reflows_on_narrow_screens(self):
+        """1.4.10: checked by hand at 320px; these rules keep it that way."""
+        self.assertRegex(CSS, r"\.nav \{[^}]*flex-wrap: wrap", "navigation wraps instead of running off the screen")
+        self.assertRegex(CSS, r"\.table-wrap \{[^}]*overflow-x: auto; position: relative",
+                         "wide tables scroll inside their box, hidden labels included")
+
 
 if __name__ == "__main__":
     unittest.main()
