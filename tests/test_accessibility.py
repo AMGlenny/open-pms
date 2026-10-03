@@ -58,7 +58,10 @@ def contrast(a, b):
 
 class PageTests(AppCase, unittest.TestCase):
     PAGES = ["/", "/week?week=2026-09-21&team=ST-SDS-A", "/team?week=2026-09-21&team=ST-SDS-A", "/tasks/new",
-             "/tasks/TSK-00001", "/problems/new", "/problems/PRB-00001", "/admin/", "/admin/audit", "/admin/measures", "/admin/measures/new", "/admin/measures/item?key=PM-0002",
+             "/tasks/TSK-00001", "/problems/new", "/problems/PRB-00001", "/measures/", "/measures/?tab=review",
+             "/measures/?tab=all", "/measures/value?key=PM-0002|M-2026-08", "/measures/value?key=PM-0010|F-2026-09-07",
+             "/measures/value?key=PM-0020|FY-2025-26", "/measures/targets",
+             "/measures/targets?measure_code=PM-0002&ref_type=target&from_date=2026-04-01&to_date=2027-03-31", "/admin/", "/admin/audit", "/admin/measures", "/admin/measures/new", "/admin/measures/item?key=PM-0002",
              "/admin/measures/edit?key=PM-0002", "/admin/measures/history?key=PM-0002", "/admin/people",
              "/admin/people/new", "/admin/people/item?key=priya.shah@example.org", "/admin/periods",
              "/admin/settings/edit?key=fy_start_month", "/admin/reference_values/new", "/no-such-page"]
@@ -133,3 +136,17 @@ class ColourTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UpdaterFormTests(AppCase, unittest.TestCase):
+    def test_value_entry_form_is_labelled(self):
+        self.login(email="nadia.hassan@example.org")
+        for key in ("PM-0020|FY-2025-26", "PM-0012|D-2026-09-29"):  # yes/no radios, and a number
+            html = self.client.get(f"/measures/value?key={key}").get_data(as_text=True)
+            p = Page(html)
+            fields = [(t, a) for t, a in p.tags if t in ("input", "select", "textarea") and a.get("type") not in ("hidden",)]
+            self.assertIn('name="value_missing"', html, f"{key}: Nadia is an updater, so the form shows")
+            for tag, a in fields:
+                self.assertIn(a.get("id"), p.labels_for, f"{key}: <{tag} name={a.get('name')}> has no label")
+            if 'type="radio"' in html:
+                self.assertIn("<legend>", html, "radio buttons need a group label (1.3.1)")

@@ -122,3 +122,21 @@ textarea { min-height: 6rem; }
 .item-meta { color: var(--c-muted); font-size: 0.95rem; }
 .item .checkbox { align-items: flex-start; }
 .item .checkbox label { font-weight: 600; }
+
+/* Measures. RAG is always written out in words; colour only reinforces it. */
+.tabs ul { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; list-style: none; margin: 0 0 1rem; padding: 0;
+           border-bottom: 2px solid #d0d0d0; }
+.tabs a { display: inline-block; padding: 0.5rem 0; }
+.tabs a[aria-current="page"] { font-weight: 700; border-bottom: 4px solid var(--c-accent); }
+.tag { display: inline-block; padding: 0.1rem 0.5rem; border: 1px solid var(--c-border); background: #fff; }
+.tag-alert { border-color: var(--c-error); color: var(--c-error); font-weight: 600; }
+.rag { display: inline-block; padding: 0.1rem 0.5rem; border-left: 6px solid var(--c-border); background: #fff; }
+.rag-green { border-left-color: var(--c-success); }
+.rag-amber { border-left-color: #8a5300; }
+.rag-red { border-left-color: var(--c-error); }
+.rag-line { margin: 1rem 0; }
+.summary.compact { padding: 0; }
+.summary.compact .summary-row dt { flex-basis: 8rem; }
+.pre { white-space: pre-wrap; }
+fieldset { border: 0; padding: 0; margin: 0 0 1.25rem; }
+legend { font-weight: 600; margin-bottom: 0.25rem; }

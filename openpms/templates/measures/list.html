@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Measures{% endblock %}
+{% block content %}
+<h1>Measures</h1>
+<nav aria-label="Measure lists" class="tabs">
+  <ul>
+    <li><a href="{{ url_for('measures.home', tab='update') }}" {% if tab == 'update' %}aria-current="page"{% endif %}>To update ({{ to_update|length }})</a></li>
+    <li><a href="{{ url_for('measures.home', tab='review') }}" {% if tab == 'review' %}aria-current="page"{% endif %}>To review ({{ to_review|selectattr('0.0', 'equalto', 1)|list|length }})</a></li>
+    <li><a href="{{ url_for('measures.home', tab='all') }}" {% if tab == 'all' %}aria-current="page"{% endif %}>All measures</a></li>
+    {% if role == 'admin' %}<li><a href="{{ url_for('measures.targets') }}">Targets</a></li>{% endif %}
+  </ul>
+</nav>
+
+{% if tab in ('update', 'review') %}
+  {% set items = to_update if tab == 'update' else to_review %}
+  <h2>{{ 'Values for you to update' if tab == 'update' else 'Values for you to review' }}</h2>
+  {% if items %}
+  <div class="table-wrap">
+  <table class="table">
+    <caption class="visually-hidden">{{ 'Values for you to update' if tab == 'update' else 'Values for you to review' }}, most urgent first</caption>
+    <thead><tr><th scope="col">Measure</th><th scope="col">Period</th><th scope="col">Status</th><th scope="col">Expected by</th></tr></thead>
+    <tbody>
+    {% for (grp, s) in items %}{% set m = measures[s.measure_code] %}
+      <tr>
+        <th scope="row"><a href="{{ url_for('measures.value', key=s.submission_key) }}">{{ m.source_ref ~ ' ' if m.source_ref else '' }}{{ m.measure_name }}</a></th>
+        <td>{{ periods[s.period_key].period_label }}</td>
+        <td><span class="tag {{ 'tag-alert' if grp[0] in (1, 2) and tab == 'update' or grp[0] == 3 and tab == 'review' else '' }}">{{ grp[1] }}</span></td>
+        <td>{{ s.expected_by|fmt if s.expected_by else 'No fixed date' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p>{{ 'Nothing to update right now.' if tab == 'update' else 'Nothing waiting for you to review.' }}</p>
+  {% endif %}
+{% else %}
+  <h2>All active measures</h2>
+  <form method="get" class="search" role="search">
+    <input type="hidden" name="tab" value="all">
+    <label for="f-q">Search by name, reference or code</label>
+    <input type="search" id="f-q" name="q" value="{{ q }}">
+    <button type="submit" class="button button-secondary">Search</button>
+  </form>
+  <div class="table-wrap">
+  <table class="table">
+    <caption class="visually-hidden">Active measures with their latest approved value</caption>
+    <thead><tr><th scope="col">Measure</th><th scope="col">Latest period</th><th scope="col">Value</th><th scope="col">RAG</th></tr></thead>
+    <tbody>
+    {% for m in all_measures|sort(attribute='measure_code') %}{% set r = latest.get(m.measure_code) %}
+      <tr>
+        <th scope="row">{% if r %}<a href="{{ url_for('measures.value', key=r.submission_key) }}">{% endif %}{{ m.source_ref ~ ' ' if m.source_ref else '' }}{{ m.measure_name }}{% if r %}</a>{% endif %} <span class="muted">({{ m.measure_code }})</span></th>
+        <td>{{ r.period_label if r else 'No approved values yet' }}</td>
+        <td>{{ fmt_value(m, r.value_number, r.value_text, r.value_missing) if r else '' }}</td>
+        <td>{% if r %}<span class="rag rag-{{ r.rag_status }}">{{ rag_text[r.rag_status] }}</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% endif %}
+{% endblock %}

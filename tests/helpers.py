@@ -40,7 +40,7 @@ class AppCase:
             src.close()
             dst.close()
         self.app = create_app({"TESTING": True, "DATABASE": str(path), "SECRET_KEY": "test",
-                               "SERVER_NAME": "pms.test"})
+                               "SERVER_NAME": "pms.test", "DISABLE_DAILY_JOBS": True})
         self.client = self.app.test_client()
 
     def tearDown(self):

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "macros.html" import error_summary %}
+{% block title %}Targets{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('measures.home') }}">Measures</a></p>
+<h1>Targets and reference values</h1>
+<p class="lead">Set a value for every period in a range at once, instead of one at a time. Existing values of the same type are replaced. Stopping a value keeps it but stops using it for RAG.</p>
+{{ error_summary(errors) }}
+<form method="get" class="form">
+  <div class="field {{ 'field-error' if errors.measure_code else '' }}">
+    <label for="f-measure_code">Measure</label>
+    <select id="f-measure_code" name="measure_code">
+      <option value="">Choose</option>
+      {% for m in measures %}<option value="{{ m.measure_code }}" {% if measure and m.measure_code == measure.measure_code %}selected{% endif %}>{{ m.measure_code }} {{ m.measure_name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field {{ 'field-error' if errors.ref_type else '' }}">
+    <label for="f-ref_type">Type</label>
+    {% if measure and measure.measure_class not in ('kpi', 'okr') %}<p class="hint" id="f-ref_type-hint">Tolerance isn't available: this measure isn't a KPI or OKR.</p>{% endif %}
+    <select id="f-ref_type" name="ref_type" {% if measure and measure.measure_class not in ('kpi', 'okr') %}aria-describedby="f-ref_type-hint"{% endif %}>
+      {% for code, text in types %}<option value="{{ code }}" {% if code == ref_type %}selected{% endif %}>{{ text }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field {{ 'field-error' if errors.from_date else '' }}"><label for="f-from_date">Periods starting on or after</label>
+    {% if errors.from_date %}<p class="error-message" id="f-from_date-error"><span class="visually-hidden">Error:</span> {{ errors.from_date }}</p>{% endif %}
+    <input type="date" id="f-from_date" name="from_date" value="{{ form.get('from_date', '') }}"></div>
+  <div class="field {{ 'field-error' if errors.to_date else '' }}"><label for="f-to_date">and ending on or before</label>
+    {% if errors.to_date %}<p class="error-message" id="f-to_date-error"><span class="visually-hidden">Error:</span> {{ errors.to_date }}</p>{% endif %}
+    <input type="date" id="f-to_date" name="to_date" value="{{ form.get('to_date', '') }}"></div>
+  <button type="submit" class="button button-secondary">Show periods</button>
+</form>
+
+{% if measure and periods %}
+<h2>{{ periods|length }} {{ measure.frequency|replace('_', ' ') }} period(s)</h2>
+<table class="table">
+  <caption class="visually-hidden">Periods in the range and their current values</caption>
+  <thead><tr><th scope="col">Period</th><th scope="col">Current {{ ref_type }}</th></tr></thead>
+  <tbody>{% for p in periods %}{% set e = existing.get(p.period_key) %}
+    <tr><th scope="row">{{ p.period_label }}</th><td>{{ fmt_value(measure, e.ref_value) if e and e.active else 'Not set' }}</td></tr>{% endfor %}</tbody>
+</table>
+<form method="post" class="form" novalidate>
+  {{ csrf_field() }}
+  {% for k in ('measure_code', 'ref_type', 'from_date', 'to_date') %}<input type="hidden" name="{{ k }}" value="{{ form.get(k, '') }}">{% endfor %}
+  <div class="field {{ 'field-error' if errors.ref_value else '' }}"><label for="f-ref_value">Value</label>
+    {% if measure.unit == 'percent' %}<p class="hint" id="f-ref_value-hint">Enter 58 for 58%.</p>{% endif %}
+    {% if errors.ref_value %}<p class="error-message" id="f-ref_value-error"><span class="visually-hidden">Error:</span> {{ errors.ref_value }}</p>{% endif %}
+    <input type="text" inputmode="decimal" class="input-short" id="f-ref_value" name="ref_value" {% if measure.unit == 'percent' %}aria-describedby="f-ref_value-hint"{% endif %}></div>
+  <div class="field"><label for="f-notes">Notes <span class="optional">(optional)</span></label>
+    <input type="text" id="f-notes" name="notes"></div>
+  <div class="actions">
+    <button type="submit" name="action" value="apply" class="button">Apply to these periods</button>
+    <button type="submit" name="action" value="stop" class="button button-secondary">Stop using in these periods</button>
+  </div>
+</form>
+{% elif measure and form.get('from_date') %}
+<p>No {{ measure.frequency|replace('_', ' ') }} periods in that range.</p>
+{% endif %}
+{% endblock %}
