@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "macros.html" import error_summary, field %}
+{% block title %}{{ 'Add to ' ~ conf.title|lower if creating else 'Change ' ~ key }}{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('admin.index') }}">Admin</a> / <a href="{{ url_for('admin.list_rows', table=table) }}">{{ conf.title }}</a></p>
+<h1>{{ 'Add to ' ~ conf.title|lower if creating else 'Change ' ~ key }}</h1>
+{% if creating and conf.key[0] != 'manual' %}<p class="lead">The code is made for you when you save.</p>{% endif %}
+{{ error_summary(errors) }}
+<form method="post" novalidate class="form">
+  {{ csrf_field() }}
+  {% for f in fields %}{{ field(f, errors) }}{% endfor %}
+  <div class="actions">
+    <button type="submit" class="button">Save</button>
+    <a href="{{ url_for('admin.list_rows', table=table) if creating else url_for('admin.view_row', table=table, key=key) }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

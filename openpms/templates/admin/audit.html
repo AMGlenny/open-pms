@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('admin.index') }}">Admin</a></p>
+<h1>Audit log</h1>
+<p class="lead">Every change made in the system, newest first. The latest 200 are shown.</p>
+<form method="get" class="search" role="search">
+  <label for="f-q">Search by item, person or table</label>
+  <input type="search" id="f-q" name="q" value="{{ q }}">
+  <button type="submit" class="button button-secondary">Search</button>
+</form>
+{% include "admin/_audit_table.html" %}
+{% endblock %}

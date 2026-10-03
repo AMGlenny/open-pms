@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "macros.html" import error_summary %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Sign in</h1>
+  {{ error_summary(errors) }}
+  <form method="post" novalidate>
+    {{ csrf_field() }}
+    <div class="field {{ 'field-error' if errors.email else '' }}">
+      <label for="f-email">Email address</label>
+      {% if errors.email %}<p class="error-message" id="f-email-error"><span class="visually-hidden">Error:</span> {{ errors.email }}</p>{% endif %}
+      <input type="email" id="f-email" name="email" value="{{ email }}" autocomplete="username" spellcheck="false"
+             {% if errors.email %}aria-describedby="f-email-error" aria-invalid="true"{% endif %}>
+    </div>
+    <div class="field">
+      <label for="f-password">Password</label>
+      <input type="password" id="f-password" name="password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="button">Sign in</button>
+  </form>
+  <p class="muted">Forgotten your password, or not set one up yet? Ask an admin to send you a link.</p>
+</div>
+{% endblock %}

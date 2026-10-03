@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<h1>Admin</h1>
+<table class="table">
+  <caption class="visually-hidden">What you can manage</caption>
+  <thead><tr><th scope="col">Manage</th><th scope="col" class="num">Rows</th></tr></thead>
+  <tbody>
+  {% for table, title, n in tables %}
+    <tr><td><a href="{{ url_for('admin.list_rows', table=table) }}">{{ title }}</a></td><td class="num">{{ '{:,}'.format(n) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p><a href="{{ url_for('admin.audit') }}">Audit log</a>: every change, who made it and when.</p>
+{% endblock %}

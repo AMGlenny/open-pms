@@ -1,0 +1,15 @@
+{% if rows %}
+<div class="table-wrap">
+<table class="table">
+  <caption class="visually-hidden">Changes</caption>
+  <thead><tr><th scope="col">When (UTC)</th><th scope="col">Who</th><th scope="col">What</th><th scope="col">Item</th><th scope="col">Field</th><th scope="col">Before</th><th scope="col">After</th></tr></thead>
+  <tbody>
+  {% for a in rows %}
+  <tr><td>{{ a.changed_at|fmt }}</td><td>{{ a.changed_by }}</td><td>{{ a.action|replace('_', ' ') }}</td><td>{{ a.list_name }}: {{ a.item_key }}</td><td>{{ a.field_name or '' }}</td><td>{{ a.old_value if a.old_value is not none else '' }}</td><td>{{ a.new_value if a.new_value is not none else '' }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>No changes recorded yet.</p>
+{% endif %}

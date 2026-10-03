@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ key }}{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('admin.index') }}">Admin</a> / <a href="{{ url_for('admin.list_rows', table=table) }}">{{ conf.title }}</a></p>
+<h1>{{ row[conf.label] if row[conf.label] else key }}</h1>
+<p class="actions">
+  <a class="button" href="{{ url_for('admin.edit_row', table=table, key=key) }}">Change</a>
+  <a href="{{ url_for('admin.history', table=table, key=key) }}">History</a>
+</p>
+<dl class="summary">
+  {% for f in fields %}
+  <div class="summary-row"><dt>{{ f.label }}</dt><dd>{{ f.value|fmt }}</dd></div>
+  {% endfor %}
+  <div class="summary-row"><dt>Last changed</dt><dd>{{ row._modified_at }} by {{ row._modified_by }}</dd></div>
+</dl>
+{% if table == 'people' %}
+<section aria-labelledby="h-signin">
+  <h2 id="h-signin">Sign-in</h2>
+  {% if account and account.has_password %}
+    <p>Has a password. Last signed in: {{ account.last_login_at or 'never' }}.</p>
+  {% else %}
+    <p>Hasn't set a password yet.</p>
+  {% endif %}
+  {% if row.active %}
+  <form method="post" action="{{ url_for('admin.invite') }}">
+    {{ csrf_field() }}
+    <input type="hidden" name="key" value="{{ key }}">
+    <button type="submit" class="button button-secondary">{{ 'Send a password reset link' if account and account.has_password else 'Create an invite link' }}</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}
